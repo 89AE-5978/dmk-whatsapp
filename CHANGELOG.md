@@ -1,5 +1,10 @@
 # Histórico
 
+## 1.1.0 — 19/11/2026
+
+- `instalar/publicar-nginx.sh`: publica o conector num domínio HTTPS, expondo **somente** `/api/public/dmk-connector/v1/`. Administração, painel e saúde continuam só em 127.0.0.1. O script confere na prática o que ficou exposto e desfaz a publicação se a administração aparecer de fora; recusa domínio que já pertença a outro site e não toca em nenhum outro site da máquina.
+- Era a peça que faltava para ligar sistemas que exigem `https://dominio` em IP público na porta 443 (o DMK Smart Core é um deles: recusa endereço local de propósito).
+
 ## 1.0.5 — 19/11/2026
 
 - Entrada: o comando de pegar a chave virou uma caixa de código com botão Copiar (o ícone vira um check ao copiar); texto numa linha só, sem quebrar.

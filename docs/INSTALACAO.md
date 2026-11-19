@@ -37,6 +37,26 @@ dmk-wa autorizar 1 "Site da gestão" gestao --confirmar
 
 Mostra um código que vale 10 minutos e um uso. O que fazer com ele está em `LIGAR-UM-SISTEMA.md`.
 
+## 4. Publicar num domínio (quando o sistema não roda na mesma máquina)
+
+Um sistema na mesma VPS pode usar `http://127.0.0.1:8098` direto. Mas vários clientes DMK —
+o DMK Smart Core, por exemplo — exigem `https://dominio` num IP público, na porta 443: eles
+recusam endereços locais de propósito. Para esses, publique o conector:
+
+```bash
+sudo bash instalar/publicar-nginx.sh zap.seudominio.com.br voce@email.com
+```
+
+Antes de rodar, aponte o DNS do domínio para o IP da VPS.
+
+O script expõe **somente** `/api/public/dmk-connector/v1/`. Qualquer outro endereço responde 404:
+a administração (`/admin/v1`), o painel (`/painel`) e a saúde (`/health`) continuam existindo só em
+127.0.0.1, alcançáveis apenas por túnel SSH. No fim ele confere isso na prática — se a
+administração aparecer de fora, ele desfaz a publicação e avisa. Nenhum outro site da máquina é
+tocado, e ele recusa um domínio que já pertença a outro site.
+
+Nos sistemas DMK, informe só o domínio, sem caminho e sem porta.
+
 ## Dia a dia
 
 | Para | Comando |
