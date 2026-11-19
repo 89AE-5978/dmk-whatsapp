@@ -5,13 +5,31 @@ Estes quatro arquivos vieram de `dmksolutions/DMK-Prisma`, pasta `sistema/lib`, 
 
 | Arquivo | Papel |
 |---|---|
-| `dmk-chat-connector.js` | Protocolo Conector DMK (`/api/public/dmk-connector/v1`): autorizações, fila de eventos, envio, ações. Sem alteração. |
-| `whatsapp-baileys.js` | Motor Baileys com várias sessões. **Uma linha acrescentada** (`runtime.qrText`), para o QR poder ser mostrado no terminal. |
+| `dmk-chat-connector.js` | Protocolo Conector DMK (`/api/public/dmk-connector/v1`): autorizações, fila de eventos, envio, ações. **Alterado na 1.3.0** (ver abaixo). |
+| `whatsapp-baileys.js` | Motor Baileys com várias sessões. **Alterado** (ver abaixo). |
+| `chat-contact-profile.js` | Apoio do motor (foto do contato: `safePhoto`). Faltava na cópia até a 1.2 — a foto sempre voltava vazia. |
 | `whatsapp-retry-cache.js` | Apoio do motor. Sem alteração. |
 | `chat-contact-identity.js` | Apoio do motor. Sem alteração. |
+
+## Alterações feitas aqui (todas marcadas com "DMK WhatsApp" no código)
+
+`whatsapp-baileys.js`:
+- `runtime.qrText` (QR no terminal).
+- `saveMessage`/`loadMessage` com os bytes do proto: o reenvio sobrevive a reinício e serve anexos também.
+- `stop()` sem logout não apaga mais o cache de reenvio.
+- Código 440 (sessão substituída) para a sessão com estado `SUBSTITUIDA` em vez de reconectar em loop.
+- Envios da mesma sessão em fila, com `minSendIntervalMs`; dois envios sem resposta reabrem o socket.
+- `proto` exportado pelo normalizador do módulo.
+
+`dmk-chat-connector.js`:
+- Opção `route` (distribuição de atendimento — `lib/atendimento.js`): quem recebe cada conversa, quem pode
+  responder/agir, rotas `/claim`, `/release`, `/conversations`, `/messages`, `/file`, `/routing`.
+- `notify()` (eventos `assigned`/`released` para quem declara `routing`) e `grantById()`.
+- Erro definitivo no envio libera o `request_id` em vez de deixá-lo "incerto" para sempre.
 
 Por que copiar em vez de reescrever: o site (`conector.py`) e os PDVs do Prisma já falam este protocolo
 e ele já tem testes no Prisma. Usando o mesmo código, o conector global responde igual à Central.
 
-Ao trazer uma versão nova do Prisma: copie os arquivos, reaplique a linha `runtime.qrText=update.qr;`
-logo depois de `runtime.qrDataUrl=await QRCode.toDataURL(...)`, atualize a revisão acima e rode `npm test`.
+Ao trazer uma versão nova do Prisma: compare com a cópia daqui, reaplique as alterações acima (procure
+"DMK WhatsApp" no código), atualize a revisão e rode `npm test` — `tests/motor.test.js` e
+`tests/atendimento.test.js` acusam se alguma alteração se perdeu.

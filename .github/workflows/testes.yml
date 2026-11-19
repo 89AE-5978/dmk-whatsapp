@@ -9,5 +9,16 @@ jobs:
         with:
           node-version-file: NODE_VERSION
       - run: for f in instalar/*.sh ferramentas/dmk-wa; do bash -n "$f"; done
-      # Os testes usam o motor simulado: não precisam do Baileys nem de rede.
+      # Os testes usam o motor simulado e uma biblioteca falsa no lugar do Baileys: não precisam de rede.
       - run: node --test tests/*.test.js
+  # Instala as dependências de verdade (as mesmas versões da VPS) e confere a biblioteca do WhatsApp:
+  # as funções que o motor usa existem e uma conexão de teste recebe QR (nada é pareado).
+  baileys:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: NODE_VERSION
+      - run: npm install --omit=dev --no-audit --no-fund --no-package-lock
+      - run: node ferramentas/conferir-baileys.js --qr

@@ -113,7 +113,7 @@
   }
 
   // ---------- carregar / render ----------
-  const ESTADOS = { CONECTADO: ['Conectado', 'on'], AGUARDANDO_QR: ['Aguardando QR', 'qr'], INICIANDO: ['Iniciando', 'qr'], DESCONECTADO: ['Desconectado', 'off'], ERRO: ['Erro', 'erro'] };
+  const ESTADOS = { CONECTADO: ['Conectado', 'on'], AGUARDANDO_QR: ['Aguardando QR', 'qr'], INICIANDO: ['Iniciando', 'qr'], RECONECTANDO: ['Reconectando', 'qr'], DESCONECTADO: ['Desconectado', 'off'], SUBSTITUIDA: ['Aberta em outro lugar', 'erro'], ERRO: ['Erro', 'erro'] };
   function selo(estado) { const [texto, classe] = ESTADOS[estado] || [estado, 'off']; return `<span class="selo ${classe}">${texto}</span>`; }
   function kpis() {
     const total = sessoes.length, conectadas = sessoes.filter((s) => s.status === 'CONECTADO').length;
@@ -208,13 +208,15 @@
     const m = abrirModal({ titulo: `${s.nome} · sessão ${s.id}`, id, corpo: `
       <div class="abas" role="tablist">
         <button class="aba" role="tab" aria-selected="true" data-aba="geral">Geral</button>
+        <button class="aba" role="tab" aria-selected="false" data-aba="atendimentos">Atendimentos</button>
         <button class="aba" role="tab" aria-selected="false" data-aba="sistemas">Sistemas ligados</button>
       </div>
-      <div data-painel="geral"></div><div data-painel="sistemas" hidden></div>`, rodape: [] });
+      <div data-painel="geral"></div><div data-painel="atendimentos" hidden></div><div data-painel="sistemas" hidden></div>`, rodape: [] });
     $$('.aba', m).forEach((a) => a.addEventListener('click', () => {
       $$('.aba', m).forEach((x) => x.setAttribute('aria-selected', String(x === a)));
       $$('[data-painel]', m).forEach((p) => p.hidden = p.dataset.painel !== a.dataset.aba);
       if (a.dataset.aba === 'sistemas') carregarAutorizacoes(m, id);
+      if (a.dataset.aba === 'atendimentos') carregarAtendimentos(m, id, true);
     }));
     desenharGeral(m, s);
     atualizarFichaAberta(id);
@@ -237,6 +239,8 @@
         <div class="dado"><span>Criada em</span><b>${new Date(s.criada_em).toLocaleString('pt-BR')}</b></div>
         <div class="dado"><span>Última mensagem</span><b>${s.ultima_recebida ? new Date(s.ultima_recebida).toLocaleString('pt-BR') : '—'}</b></div>
         <div class="dado"><span>Eventos na fila</span><b>${s.eventos_pendentes}</b></div>
+        <div class="dado"><span>Distribuição</span><b title="${s.distribuicao === 'todos' ? 'Todas as conexões recebem tudo' : 'Lead aparece para todas; quem assume fica com a conversa'}">${s.distribuicao === 'todos' ? 'Todos' : 'Leads'}</b></div>
+        <div class="dado"><span>Em atendimento · leads</span><b>${s.atendimentos ? s.atendimentos.em_atendimento + ' · ' + s.atendimentos.leads : '—'}</b></div>
       </div>
       ${s.erro ? `<p class="aviso perigo">${esc(s.erro)}</p>` : ''}
       <div data-qr></div>
@@ -254,9 +258,11 @@
   }
   function atualizarFichaAberta(id) {
     const s = sessoes.find((x) => x.id === id), m = $(`.modal[data-id="${id}"]`); if (!s || !m) return;
-    if (!$('.aba[aria-selected=true]', m) || $('.aba[aria-selected=true]', m).dataset.aba === 'geral') desenharGeral(m, s);
+    const aba = $('.aba[aria-selected=true]', m)?.dataset.aba || 'geral';
+    if (aba === 'geral') desenharGeral(m, s);
+    if (aba === 'atendimentos') carregarAtendimentos(m, id, false);
     const alvoQr = $('[data-qr]', m);
-    if (alvoQr) alvoQr.innerHTML = s.status === 'AGUARDANDO_QR' && s.qr ? `<div class="qr"><img src="${s.qr}" alt="QR Code do WhatsApp" width="240" height="240"><p>No celular: WhatsApp → Aparelhos conectados → Conectar um aparelho, e aponte para este código. Ele é renovado sozinho enquanto não for lido.</p></div>` : '';
+    if (alvoQr) alvoQr.innerHTML = s.status === 'AGUARDANDO_QR' && s.qr ? `<div class="quadro-qr"><img src="${s.qr}" alt="QR Code do WhatsApp" width="240" height="240"><p>No celular: WhatsApp → Aparelhos conectados → Conectar um aparelho, e aponte para este código. Ele é renovado sozinho enquanto não for lido.</p></div>` : '';
   }
   async function acaoFicha(m, id, acao, bt) {
     if (acao === 'teste') return abrirTeste(id);
@@ -291,23 +297,28 @@
 
   function confirmarPerigo(titulo, texto, onConfirmar) {
     abrirModal({ titulo, estreito: true, corpo: `<p class="aviso perigo">${esc(texto)}</p>`, rodape: [
-      { texto: 'Cancelar', onClick: (m) => { m.remove(); fundo.hidden = true; } },
-      { texto: 'Confirmar', perigo: true, onClick: async (m, bt) => { await onConfirmar(bt); m.remove(); fundo.hidden = true; } },
+      // Fecha só este aviso: se a ficha continua aberta por baixo, o fundo escurecido continua.
+      { texto: 'Cancelar', onClick: (m) => { m.remove(); if (!$('.modal')) fundo.hidden = true; } },
+      { texto: 'Confirmar', perigo: true, onClick: async (m, bt) => { await onConfirmar(bt); m.remove(); if (!$('.modal')) fundo.hidden = true; } },
     ] });
   }
 
   // ---------- autorizar sistema ----------
   function abrirAutorizar(id) {
-    const m = abrirModal({ titulo: 'Ligar sistema', estreito: true, corpo: `<p class="aviso">O sistema autorizado poderá ler e responder todas as conversas deste número.</p>
+    const m = abrirModal({ titulo: 'Ligar sistema', estreito: true, corpo: `<p class="aviso">Cada sistema ligado é uma conexão com ID próprio. Ele recebe os leads (primeiro contato) deste número; quando assume ou responde um lead, a conversa fica só com ele até finalizar.</p>
       <div class="campos campos-espaco">
         <div class="campo"><label for="autNome">Nome (aparece na lista de sistemas ligados)</label><input id="autNome" maxlength="100" placeholder='Ex.: "Site da gestão"'></div>
         <div class="campo"><label for="autSistema">Sistema</label><input id="autSistema" maxlength="150" placeholder="Ex.: gestao"></div>
+        <div class="campo"><label>Tipo</label><div class="grupo-bt seg" data-tipo-nova>
+          <button type="button" class="bt bt-mini bt-principal" data-t="atendimento">Atendimento</button><button type="button" class="bt bt-mini" data-t="avisos">Avisos</button></div>
+          <span class="dica">Atendimento: assume a conversa quando responde. Avisos (cobrança, alertas): envia sem assumir.</span></div>
       </div>`, rodape: [{ texto: 'Gerar código', principal: true, onClick: async (mm, bt) => {
-        const nome = $('#autNome', mm).value.trim(), sistema = $('#autSistema', mm).value.trim();
+        const nome = $('#autNome', mm).value.trim(), sistema = $('#autSistema', mm).value.trim(), tipo = $('[data-tipo-nova] .bt-principal', mm).dataset.t;
         if (!nome || !sistema) return avisar('Informe nome e sistema.');
-        const a = await chamar('POST', `/sessoes/${id}/autorizacoes`, { nome, sistema, confirmado: true }, bt);
+        const a = await chamar('POST', `/sessoes/${id}/autorizacoes`, { nome, sistema, tipo, confirmado: true }, bt);
         mm.remove(); fundo.hidden = true; mostrarCodigo(a.code);
       } }] });
+    $$('[data-tipo-nova] .bt', m).forEach((b) => b.addEventListener('click', () => $$('[data-tipo-nova] .bt', m).forEach((x) => x.classList.toggle('bt-principal', x === b))));
   }
   function mostrarCodigo(codigo) {
     abrirModal({ titulo: 'Código gerado', estreito: true, corpo: `
@@ -323,18 +334,89 @@
     const { autorizacoes } = await api('GET', `/sessoes/${id}/autorizacoes`);
     alvo.classList.add('quadro');
     alvo.innerHTML = autorizacoes.length ? `<table class="dmk-lista">
-      <thead><tr><th>Sistema</th><th>Nome</th><th>Estado</th><th class="num">Fila</th><th></th></tr></thead>
+      <thead><tr><th>Conexão</th><th>ID</th><th>Tipo</th><th>Estado</th><th class="num">Fila</th><th></th></tr></thead>
       <tbody>${autorizacoes.map((a) => `<tr>
-        <td>${esc(a.installation)}</td><td>${esc(a.label)}</td>
+        <td class="contato"><b>${esc(a.label)}</b><small>${esc(a.installation)}</small></td><td class="id" title="ID completo: ${esc(a.id)}">${esc(a.id.slice(0, 8))}</td>
+        <td><div class="grupo-bt seg">${['atendimento', 'avisos'].map((t) => `<button class="bt bt-mini ${a.tipo === t ? 'bt-principal' : ''}" data-tipo="${t}" data-aut="${a.id}" title="${t === 'avisos' ? 'Envia avisos sem assumir a conversa (cobrança, alertas)' : 'Assume a conversa quando responde'}" ${a.revoked_at ? 'disabled' : ''}>${t === 'avisos' ? 'Avisos' : 'Atendimento'}</button>`).join('')}</div></td>
         <td>${a.revoked_at ? '<span class="selo off">Revogada</span>' : a.paired ? '<span class="selo on">Ligada</span>' : '<span class="selo qr">Aguardando</span>'}</td>
         <td class="num">${a.pending}</td>
         <td><div class="grupo-bt">${a.revoked_at ? '' : `<button class="bt bt-mini bt-perigo" data-revogar="${a.id}"><svg><use href="#i-fechar"/></svg><span>Revogar</span></button>`}<button class="bt bt-mini" data-excluir-aut="${a.id}" title="Excluir do histórico desta sessão"><svg><use href="#i-lixo"/></svg><span>Excluir</span></button></div></td>
       </tr>`).join('')}</tbody></table>` : '<p class="vazio">Nenhum sistema ligado a esta sessão.</p>';
+    $$('[data-tipo]', alvo).forEach((bt) => bt.addEventListener('click', async () => { if (bt.classList.contains('bt-principal')) return; await chamar('POST', `/sessoes/${id}/autorizacoes/${bt.dataset.aut}/tipo`, { tipo: bt.dataset.tipo }, bt); carregarAutorizacoes(m, id); }));
     $$('[data-revogar]', alvo).forEach((bt) => bt.addEventListener('click', () => confirmarPerigo('Revogar acesso', 'O sistema para de ler e enviar por esta sessão na próxima consulta.', async (bt2) => { await chamar('POST', `/sessoes/${id}/autorizacoes/${bt.dataset.revogar}/revogar`, null, bt2); carregarAutorizacoes(m, id); carregar(); })));
     $$('[data-excluir-aut]', alvo).forEach((bt) => bt.addEventListener('click', () => confirmarPerigo('Excluir do histórico', 'A autorização sai da lista desta sessão. Se ainda estiver ativa, o acesso do sistema é cortado agora. O que o sistema já gravou do lado dele continua lá.', async (bt2) => { await chamar('POST', `/sessoes/${id}/autorizacoes/${bt.dataset.excluirAut}/excluir`, null, bt2); carregarAutorizacoes(m, id); carregar(); })));
   }
 
+  // ---------- atendimentos (quem está atendendo cada conversa) ----------
+  // Lista padrão: Pesquisar + modo de distribuição numa linha; cabeçalhos ordenáveis; paginação no rodapé.
+  // Redesenha só quando os dados mudam (o polling de 4 s não reseta pesquisa, ordem nem página).
+  const SITUACAO = { NOVO: ['Lead', 'qr'], EM_ATENDIMENTO: ['Em atendimento', 'on'], FINALIZADO: ['Finalizada', 'off'] };
+  async function carregarAtendimentos(m, id, primeira) {
+    const alvo = $('[data-painel=atendimentos]', m);
+    if (primeira || !alvo.dataset.pronto) {
+      alvo.dataset.pronto = '1'; alvo.innerHTML = `
+        <div class="barra-aba">
+          <div class="busca"><svg><use href="#i-lupa"/></svg><input type="search" data-at-busca placeholder="Pesquisar contato, nome ou conexão" spellcheck="false"></div>
+          <div class="grupo-bt seg" role="group" aria-label="Distribuição">
+            <button class="bt bt-mini" data-modo="leads" title="Lead novo aparece para todas as conexões; quem assume fica com a conversa">Leads</button>
+            <button class="bt bt-mini" data-modo="todos" title="Todas as conexões recebem e respondem tudo">Todos</button>
+          </div>
+        </div>
+        <div class="quadro"><table class="dmk-lista"><thead><tr>
+          <th data-ord="name">Contato</th><th data-ord="state">Situação</th><th data-ord="owner">Atendendo</th><th data-ord="last_at">Última</th><th></th>
+        </tr></thead><tbody data-at-corpo></tbody></table><p class="vazio" data-at-vazio hidden></p></div>
+        <div class="paginacao" data-at-pag></div>`;
+      alvo._estado = { termo: '', ord: 'last_at', desc: true, pagina: 1, por: 10, dados: null, assinatura: '' };
+      $('[data-at-busca]', alvo).addEventListener('input', (ev) => { alvo._estado.termo = ev.target.value; alvo._estado.pagina = 1; desenharAtendimentos(m, id); });
+      $$('[data-modo]', alvo).forEach((bt) => bt.addEventListener('click', async () => {
+        if (alvo._estado.dados?.modo === bt.dataset.modo) return;
+        await chamar('POST', `/sessoes/${id}/distribuicao`, { modo: bt.dataset.modo }, bt); await carregar(); carregarAtendimentos(m, id, false);
+      }));
+      $$('th[data-ord]', alvo).forEach((th) => th.addEventListener('click', () => { const e = alvo._estado; e.desc = e.ord === th.dataset.ord ? !e.desc : false; e.ord = th.dataset.ord; desenharAtendimentos(m, id); }));
+    }
+    let dados; try { dados = await api('GET', `/sessoes/${id}/atendimentos`); } catch (e) { return avisar(e.message); }
+    const assinatura = JSON.stringify(dados);
+    if (assinatura === alvo._estado.assinatura) return;
+    alvo._estado.assinatura = assinatura; alvo._estado.dados = dados; desenharAtendimentos(m, id);
+  }
+  function desenharAtendimentos(m, id) {
+    const alvo = $('[data-painel=atendimentos]', m), e = alvo._estado; if (!e?.dados) return;
+    $$('[data-modo]', alvo).forEach((bt) => bt.classList.toggle('bt-principal', bt.dataset.modo === e.dados.modo));
+    const termo = e.termo.trim().toLowerCase(), valor = (c) => e.ord === 'owner' ? c.owner?.label || '' : e.ord === 'name' ? c.name || c.phone || '' : String(c[e.ord] ?? '');
+    const lista = e.dados.conversas.filter((c) => !termo || [c.phone, c.peer, c.name, c.owner?.label].some((v) => String(v || '').toLowerCase().includes(termo)))
+      .sort((a, b) => valor(a).localeCompare(valor(b), 'pt-BR', { numeric: true }) * (e.desc ? -1 : 1));
+    const paginas = Math.max(1, Math.ceil(lista.length / e.por)); e.pagina = Math.min(e.pagina, paginas);
+    const pagina = lista.slice((e.pagina - 1) * e.por, e.pagina * e.por);
+    $$('th[data-ord]', alvo).forEach((th) => th.dataset.dir = th.dataset.ord === e.ord ? (e.desc ? 'desc' : 'asc') : '');
+    $('[data-at-corpo]', alvo).innerHTML = pagina.map((c) => { const [t, cl] = SITUACAO[c.state] || [c.state, 'off']; return `<tr>
+      <td class="contato"><b>${esc(c.name || c.phone || c.peer)}</b><small>${esc(c.phone || c.peer)}</small></td><td><span class="selo ${cl}">${t}</span></td>
+      <td>${c.owner ? esc(c.owner.label) : '<span class="fraco">todas as conexões</span>'}</td>
+      <td>${c.last_at ? new Date(c.last_at).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' }) : '—'}</td>
+      <td><div class="grupo-bt">${c.owner ? `<button class="bt bt-mini bt-icone-mini" data-liberar="${esc(c.peer)}" title="Liberar: finalizar e devolver para todas as conexões"><svg><use href="#i-girar"/></svg></button>` : ''}
+        ${e.dados.modo === 'leads' ? `<button class="bt bt-mini bt-icone-mini" data-transferir="${esc(c.peer)}" title="Transferir para outra conexão"><svg><use href="#i-sair"/></svg></button>` : ''}</div></td>
+    </tr>`; }).join('');
+    const vazio = $('[data-at-vazio]', alvo); vazio.hidden = lista.length > 0;
+    vazio.textContent = e.dados.conversas.length ? 'Nenhuma conversa com essa pesquisa.' : 'Nenhuma conversa ainda. Elas aparecem aqui quando o número recebe ou envia mensagens.';
+    const nums = []; for (let p = Math.max(1, Math.min(e.pagina - 2, paginas - 4)); p <= Math.min(paginas, Math.max(1, Math.min(e.pagina - 2, paginas - 4)) + 4); p++) nums.push(p);
+    $('[data-at-pag]', alvo).innerHTML = `<span class="total">${lista.length} conversa(s)</span><div class="grupo-bt">
+      <button class="bt bt-mini" data-pag="${e.pagina - 1}" ${e.pagina <= 1 ? 'disabled' : ''} title="Anterior">‹</button>
+      ${nums.map((p) => `<button class="bt bt-mini ${p === e.pagina ? 'bt-principal' : ''}" data-pag="${p}">${p}</button>`).join('')}
+      <button class="bt bt-mini" data-pag="${e.pagina + 1}" ${e.pagina >= paginas ? 'disabled' : ''} title="Próxima">›</button>
+      ${[10, 25, 50, 100].map((n) => `<button class="bt bt-mini ${n === e.por ? 'bt-principal' : ''}" data-por="${n}" title="${n} por página">${n}</button>`).join('')}</div>`;
+    $$('[data-pag]', alvo).forEach((bt) => bt.addEventListener('click', () => { e.pagina = Number(bt.dataset.pag); desenharAtendimentos(m, id); }));
+    $$('[data-por]', alvo).forEach((bt) => bt.addEventListener('click', () => { e.por = Number(bt.dataset.por); e.pagina = 1; desenharAtendimentos(m, id); }));
+    $$('[data-liberar]', alvo).forEach((bt) => bt.addEventListener('click', () => confirmarPerigo('Liberar conversa', 'A conversa sai de quem está atendendo e volta a ser lead: a próxima mensagem do contato aparece para todas as conexões.', async (bt2) => { await chamar('POST', `/sessoes/${id}/atendimentos/liberar`, { peer: bt.dataset.liberar }, bt2); carregarAtendimentos(m, id, false); })));
+    $$('[data-transferir]', alvo).forEach((bt) => bt.addEventListener('click', () => abrirTransferir(m, id, bt.dataset.transferir, e.dados.conversas.find((c) => c.peer === bt.dataset.transferir)?.owner?.id)));
+  }
+  async function abrirTransferir(ficha, id, peer, donoAtual) {
+    const { autorizacoes } = await api('GET', `/sessoes/${id}/autorizacoes`).catch((e) => { avisar(e.message); return { autorizacoes: [] }; });
+    const ligadas = autorizacoes.filter((a) => a.paired && !a.revoked_at && a.id !== donoAtual);
+    if (!ligadas.length) return avisar('Nenhuma outra conexão ligada a esta sessão para receber a conversa.');
+    const m = abrirModal({ titulo: 'Transferir conversa', estreito: true, corpo: `<p class="nota">Escolha a conexão que passa a atender ${esc(peer.split('@')[0])}. A conexão atual deixa de ver a conversa.</p>
+      <div class="lista-escolha">${ligadas.map((a) => `<button class="bt" data-para="${a.id}"><svg><use href="#i-chave"/></svg><span>${esc(a.label)} <small>${esc(a.installation)}</small></span></button>`).join('')}</div>` });
+    $$('[data-para]', m).forEach((bt) => bt.addEventListener('click', async () => { await chamar('POST', `/sessoes/${id}/atendimentos/transferir`, { peer, para: bt.dataset.para }, bt); m.remove(); carregarAtendimentos(ficha, id, false); }));
+  }
+
   // ---------- início ----------
   const guardada = sessionStorage.getItem('dmk-wa-chave'); if (guardada) { $('#chave').value = guardada; entrar(guardada); }
-  api('GET', '/sessoes').then(() => {}).catch(() => {});
 })();

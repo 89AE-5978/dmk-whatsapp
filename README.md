@@ -5,16 +5,30 @@ Cada sistema se liga à sessão dele com um código, busca os eventos, grava do 
 
 **Versão:** veja `VERSION` · **Histórico:** `CHANGELOG.md`
 
-## O que o conector guarda (e o que não guarda)
+## Uma sessão, várias conexões (1.3.0)
 
-| Guarda | Não guarda |
+Cada sessão é um número. Cada sistema/chat ligado a ela é uma **conexão**, com ID próprio.
+
+- **Lead novo** (primeiro contato): aparece em todas as conexões.
+- **Quem assume** (botão assumir ou simplesmente respondendo) fica sozinho com a conversa: as outras
+  param de receber as mensagens desse contato, recebem o aviso para tirar da tela e não conseguem responder.
+- **Finalizou**: a conversa volta a ser lead e a próxima mensagem do contato aparece de novo para todas.
+- **Conexão de avisos** (cobrança, alertas do Smart Core): envia sem assumir a conversa — o lead não fica
+  preso num sistema que só manda notificação. O tipo de cada conexão se troca no painel (Sistemas ligados).
+- Pelo painel (aba Atendimentos da sessão) dá para ver quem atende cada conversa, liberar, transferir e trocar
+  o modo para "todos" (todas as conexões recebem tudo, como antes da 1.3.0).
+
+## O que o conector guarda
+
+| Onde | O quê |
 |---|---|
-| A conexão de cada número (credenciais do WhatsApp) | Conversas e histórico |
-| As autorizações (quem pode usar qual sessão) | Contatos, etiquetas, atendimento |
-| Os eventos ainda não confirmados pelo sistema dono | Anexos já confirmados |
+| `dados/whatsapp-baileys/<sessão>` | A credencial de cada número |
+| `dados/conector.json` | Sessões, conexões (autorizações) e eventos ainda não confirmados |
+| `dados/sessoes/<sessão>/atendimento/` | Conversas, mensagens e anexos, **numa pasta por conexão** (`LEIA-ME.txt` lá dentro explica). Uma conexão nunca lê a pasta de outra |
+| `dados/sessoes/<sessão>/reenvio/` | Conteúdo dos envios dos últimos 7 dias, para o WhatsApp conseguir reenviar a mensagem ao celular do cliente (evita "Aguardando mensagem") |
 
-Mensagens, conversas e arquivos ficam na pasta de cada sistema. Quando o sistema confirma um evento,
-ele sai do conector.
+Os sistemas continuam buscando os eventos, gravando do lado deles e confirmando. Anexos do histórico ficam
+180 dias; conversas paradas há mais tempo que isso saem sozinhas.
 
 ## Como conversa com os sistemas
 
@@ -23,7 +37,8 @@ O site da gestão (`conector.py`) e os PDVs do Prisma já sabem usá-lo. O códi
 Baileys veio do DMK Prisma sem reescrita (`lib/vendor/ORIGEM.md`).
 
 A diferença para a Central: lá existe uma sessão só, compartilhada. Aqui cada autorização pertence a
-uma sessão, e a credencial de uma sessão não lê nem envia por outra.
+uma sessão, a credencial de uma sessão não lê nem envia por outra, e dentro da sessão vale a distribuição
+de leads acima.
 
 ## Pasta única
 

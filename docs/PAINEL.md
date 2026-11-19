@@ -37,13 +37,23 @@ sequer chegar à tela de login do painel; é a camada de proteção de verdade.
 - **Ficha da sessão** (aba Geral): dados, o QR quando está esperando a leitura (atualiza sozinho),
   Conectar/Pausar, Reiniciar, Ligar sistema (gera o código), Trocar número e Excluir — as duas últimas
   pedem confirmação.
+- **Ficha da sessão** (aba Atendimentos): cada conversa do número, a situação (Lead, Em atendimento,
+  Finalizada) e qual conexão está atendendo. Pesquisar, ordenar pelos cabeçalhos, paginação no rodapé.
+  Botões por linha: Liberar (devolve para todas as conexões) e Transferir (passa para outra conexão).
+  No topo da aba, o modo de distribuição: **Leads** (quem assume fica com a conversa) ou **Todos**.
 - **Ficha da sessão** (aba Sistemas ligados): quem tem autorização, estado e um botão para revogar.
+  Revogar devolve para todos as conversas que aquele sistema atendia.
 
-A lista e a ficha aberta se atualizam sozinhas a cada 4 segundos.
+A lista e a ficha aberta se atualizam sozinhas a cada 4 segundos (a aba Atendimentos só redesenha
+quando algo muda — a pesquisa, a ordem e a página ficam como você deixou).
+
+Estado **Aberta em outro lugar**: a mesma credencial está ligada em outra máquina ou serviço (código 440).
+O conector para essa sessão para as duas não se derrubarem em loop. Desligue a outra cópia e use Reiniciar.
 
 ## O que o painel não faz
 
-Não mostra nem armazena o conteúdo das conversas — isso fica no sistema dono, nunca no conector.
+Não mostra o texto das conversas — só quem atende cada uma e a última atividade. O histórico fica em
+`dados/sessoes/<sessão>/atendimento/` (uma pasta por conexão) e cada sistema lê o seu pelo protocolo.
 Não gera o código em Python/exemplo de integração: isso está em `docs/PROMPT-PARA-AGENTES.md`.
 
 ## Atualizar pelo painel

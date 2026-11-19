@@ -52,6 +52,17 @@ function criarServidor({ dataDir, chaveAdmin, fabricaMotor, simulado = false, lo
     if (p === '/atualizacao' && req.method === 'POST') return json(await atualizacao.pedir(), 202);
     if (p === '/sessoes' && req.method === 'GET') return json({ sessoes: sessoes.listar() });
     if (p === '/sessoes' && req.method === 'POST') return json(sessoes.criar(b), 201);
+    // Atendimento: conversas da sessão, quem está atendendo, liberar/transferir e modo de distribuição.
+    const at = /^\/sessoes\/(\d+)\/(atendimentos|distribuicao)(?:\/(liberar|transferir))?$/.exec(p);
+    if (at) {
+      const [, sid, rota, acaoAt] = at;
+      if (rota === 'atendimentos' && !acaoAt && req.method === 'GET') return json(sessoes.atendimentos(sid));
+      if (req.method !== 'POST') throw fail('Rota não encontrada.', 404);
+      if (rota === 'distribuicao' && !acaoAt) return json(sessoes.definirDistribuicao(sid, b));
+      if (acaoAt === 'liberar') return json(sessoes.liberarAtendimento(sid, b));
+      if (acaoAt === 'transferir') return json(sessoes.transferirAtendimento(sid, b));
+      throw fail('Rota não encontrada.', 404);
+    }
     if (!m) throw fail('Rota não encontrada.', 404);
     const [, id, acao, cid, sub] = m;
     if (!acao && req.method === 'GET') return json(sessoes.ver(id));
@@ -66,6 +77,7 @@ function criarServidor({ dataDir, chaveAdmin, fabricaMotor, simulado = false, lo
     if (acao === 'autorizacoes' && !cid) return json(sessoes.autorizar(id, b), 201);
     if (acao === 'autorizacoes' && sub === 'revogar') return json(sessoes.revogar(id, cid));
     if (acao === 'autorizacoes' && sub === 'excluir') return json(sessoes.removerAutorizacao(id, cid));
+    if (acao === 'autorizacoes' && sub === 'tipo') return json(sessoes.tipoConexao(id, cid, b));
     // Só no modo simulado: faz o papel do celular e do WhatsApp para testar um sistema sem número real.
     if (simulado && acao === 'simular-leitura-qr') { sessoes.motor.lerQr(id, b.telefone); return json(sessoes.ver(id)); }
     if (simulado && acao === 'simular-mensagem') { await sessoes.motor.receber(id, b); return json({ ok: true }); }

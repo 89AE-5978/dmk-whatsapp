@@ -15,10 +15,15 @@ const AJUDA = `DMK WhatsApp - administração do conector
   dmk-wa reiniciar <id>                      reinicia a conexão mantendo a sessão
   dmk-wa trocar-numero <id> --confirmar      desconecta o número e mostra QR para outro
   dmk-wa excluir <id> --confirmar            apaga a sessão e as autorizações dela
-  dmk-wa autorizar <id> "<nome>" <sistema> --confirmar
-                                             gera o código (10 min, um uso) para ligar um sistema à sessão
+  dmk-wa autorizar <id> "<nome>" <sistema> --confirmar [--avisos]
+                                             gera o código (10 min, um uso) para ligar um sistema à sessão;
+                                             --avisos: conexão só de avisos (envia sem assumir a conversa)
   dmk-wa autorizacoes <id>                   sistemas ligados à sessão
   dmk-wa revogar <id> <autorizacao>          corta o acesso de um sistema na hora
+  dmk-wa atendimentos <id>                   conversas da sessão e qual conexão está atendendo cada uma
+  dmk-wa liberar <id> <telefone>             devolve a conversa para todas as conexões (lead de novo)
+  dmk-wa distribuicao <id> leads|todos       leads: quem assume fica com a conversa; todos: todo mundo recebe tudo
+  dmk-wa conferir                            confere a biblioteca do WhatsApp instalada e abre uma conexão de teste (QR)
 `;
 async function api(metodo, caminho, corpo) {
   let chave;
@@ -62,12 +67,20 @@ async function principal([comando, ...args]) {
     case 'trocar-numero': exigirId(); if (!confirmado(args)) throw Error('Isto desconecta o número atual. Repita com --confirmar.'); await mostrarQrAteConectar(id, await api('POST', `/admin/v1/sessoes/${id}/novo-qr`, { confirmado: true })); break;
     case 'excluir': exigirId(); if (!confirmado(args)) throw Error('Isto desconecta o número e apaga as autorizações desta sessão. Repita com --confirmar.'); await api('POST', `/admin/v1/sessoes/${id}/excluir`, { confirmado: true }); console.log(`Sessão ${id} excluída.`); break;
     case 'autorizar': {
-      exigirId(); if (!confirmado(args)) throw Error('O sistema autorizado poderá ler e responder todas as conversas deste número. Repita com --confirmar.');
-      const a = await api('POST', `/admin/v1/sessoes/${id}/autorizacoes`, { nome: args[1], sistema: args[2], confirmado: true });
+      exigirId(); if (!confirmado(args)) throw Error('O sistema autorizado verá os leads deste número e responderá as conversas que assumir. Repita com --confirmar.');
+      const a = await api('POST', `/admin/v1/sessoes/${id}/autorizacoes`, { nome: args[1], sistema: args[2], confirmado: true, tipo: args.includes('--avisos') ? 'avisos' : 'atendimento' });
       console.log(`Código para ligar "${a.label}" à sessão ${id} (vale 10 minutos, um uso só):\n\n  ${a.code}\n\nNo sistema, informe este código e o endereço do conector. Veja docs/LIGAR-UM-SISTEMA.md.`); break;
     }
-    case 'autorizacoes': { exigirId(); const { autorizacoes } = await api('GET', `/admin/v1/sessoes/${id}/autorizacoes`); console.log(autorizacoes.length ? autorizacoes.map((a) => `  ${a.id}  ${a.revoked_at ? 'REVOGADA ' : a.paired ? 'LIGADA   ' : 'AGUARDA  '} ${a.installation.padEnd(18)} ${a.label}  (${a.pending} na fila, vale até ${new Date(a.expires_at).toLocaleDateString('pt-BR')})`).join('\n') : 'Nenhum sistema ligado a esta sessão.'); break; }
+    case 'autorizacoes': { exigirId(); const { autorizacoes } = await api('GET', `/admin/v1/sessoes/${id}/autorizacoes`); console.log(autorizacoes.length ? autorizacoes.map((a) => `  ${a.id}  ${a.revoked_at ? 'REVOGADA ' : a.paired ? 'LIGADA   ' : 'AGUARDA  '} ${(a.tipo || 'atendimento').padEnd(12)} ${a.installation.padEnd(18)} ${a.label}  (${a.pending} na fila, vale até ${new Date(a.expires_at).toLocaleDateString('pt-BR')})`).join('\n') : 'Nenhum sistema ligado a esta sessão.'); break; }
     case 'revogar': exigirId(); await api('POST', `/admin/v1/sessoes/${id}/autorizacoes/${args[1]}/revogar`); console.log('Acesso revogado. O sistema para na próxima consulta.'); break;
+    case 'atendimentos': {
+      exigirId(); const { modo, conversas } = await api('GET', `/admin/v1/sessoes/${id}/atendimentos`);
+      console.log(`Distribuição: ${modo === 'leads' ? 'leads (quem assume fica com a conversa)' : 'todos (todas as conexões recebem tudo)'}`);
+      console.log(conversas.length ? conversas.map((c) => `  ${(c.phone || c.peer).padEnd(16)}${c.state.padEnd(16)}${(c.owner ? c.owner.label : '— todas —').padEnd(24)}${c.name || ''}`).join('\n') : 'Nenhuma conversa ainda.'); break;
+    }
+    case 'liberar': exigirId(); await api('POST', `/admin/v1/sessoes/${id}/atendimentos/liberar`, { peer: args[1] }); console.log('Conversa devolvida para todas as conexões.'); break;
+    case 'distribuicao': exigirId(); { const s = await api('POST', `/admin/v1/sessoes/${id}/distribuicao`, { modo: args[1] }); console.log(`Sessão ${s.id}: distribuição "${s.distribuicao}".`); } break;
+    case 'conferir': { const r = require('node:child_process').spawnSync(process.execPath, [path.join(__dirname, 'conferir-baileys.js'), '--qr'], { stdio: 'inherit', cwd: RAIZ }); process.exitCode = r.status; break; }
     default: console.log(AJUDA);
   }
 }

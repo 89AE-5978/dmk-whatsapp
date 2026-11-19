@@ -85,13 +85,30 @@ POST /send
 Outras operações (mesma credencial): `POST /react`, `POST /edit`, `POST /delete`, `POST /presence`,
 `GET /presence?to=`, `POST /read`, `GET /photo?to=`.
 
+### 3b. Atendimento compartilhado (mesmo número em vários sistemas)
+
+Se a sessão estiver ligada a mais de um sistema (modo `leads`, o padrão):
+
+- Envie `X-DMK-Features: actions,routing` no `GET /events`.
+- Lead novo chega para todos. Mostre um botão **Assumir** (`POST /claim { "to" }`); responder com
+  `POST /send` também assume.
+- Evento `assigned` com `mine: false`: outro sistema assumiu — **tire a conversa da tela**. Com `mine: true`
+  a conversa é sua.
+- Evento `released`: a conversa foi finalizada e volta a ser lead.
+- Botão **Finalizar** = `POST /release { "to" }`.
+- `GET /conversations` e `GET /messages?to=` devolvem só leads e as conversas do seu sistema.
+- `409` com "em atendimento por …" ao enviar: outro sistema está com o contato; não insista.
+- Sistema que só manda notificação (cobrança, alerta): peça ao administrador para marcar a conexão como
+  **Avisos** no painel — assim ela envia sem assumir a conversa de ninguém.
+
 ### 4. Tratar os erros exatamente assim
 
 | Resposta | O que significa | O que fazer |
 |---|---|---|
 | `401` | Autorização revogada ou vencida (vale 90 dias) | **Pare o laço de consulta.** Marque o canal como desconectado e peça um código novo. Não fique tentando. |
 | `409` com `"delivery_uncertain": true` | O WhatsApp não confirmou o envio | Confira a conversa antes de repetir. **Não gere outro `request_id`** para contornar. |
-| `503` no envio | A sessão não está conectada no momento | Mostre "WhatsApp desconectado" e tente de novo depois. |
+| `400`/`503` sem `delivery_uncertain` | Recusado de vez: número sem WhatsApp ou sessão desconectada. Nada foi enviado | Mostre o erro. Pode repetir o **mesmo** `request_id` depois de corrigir. |
+| `409` "em atendimento por …" | Outro sistema assumiu este contato | Tire a conversa da tela; não reenvie. |
 | `429` | Consultas demais | Aumente o intervalo. |
 
 ## Regras que você não pode quebrar

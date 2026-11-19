@@ -1,5 +1,41 @@
 # Histórico
 
+## 1.3.0 — 19/11/2026
+
+**Travamento e "a mensagem vai, mas ninguém consegue ler"** (celular do cliente em "Aguardando mensagem"):
+- Biblioteca do WhatsApp de 6.7.24 para **7.0.0-rc14**. A 6.7 não sabia lidar com o endereçamento novo do
+  WhatsApp (LID e token de privacidade): o envio era aceito, mas o aparelho do cliente não conseguia abrir.
+  O motor já tinha o código para LID; faltava a biblioteca que o entrega.
+- Reenvio persistente: o conteúdo exato de cada envio (inclusive anexo) fica 7 dias em
+  `dados/sessoes/<sessão>/reenvio/`. Antes ficava só em memória e sumia ao pausar, reiniciar ou atualizar —
+  todo pedido de reenvio que chegasse depois ficava sem resposta.
+- Código 440 (a mesma credencial aberta em outro lugar — outra VPS, cópia da pasta `dados`, serviço
+  duplicado): a sessão para com o estado "Aberta em outro lugar" em vez de reconectar em loop. As duas cópias
+  brigando é exatamente o "funciona 2 ou 3 mensagens e trava".
+- Envios da mesma sessão em fila, com 1 s de intervalo; sessões diferentes não esperam umas pelas outras.
+- Conexão "zumbi" (aparece conectada, não responde): dois envios sem resposta reabrem só aquele socket, sem QR.
+- Erro definitivo (número sem WhatsApp, sessão desconectada) não deixa mais o `request_id` preso como
+  "incerto" — o sistema repetia o mesmo ID e recebia 409 para sempre.
+- Foto do contato voltava sempre vazia (faltava `chat-contact-profile.js` na cópia do motor).
+
+**Uma sessão, várias conexões — distribuição de leads:**
+- Cada sistema ligado é uma conexão com ID próprio. Lead novo vai para todas; quem assume (`/claim`) ou
+  responde fica sozinho com a conversa; finalizar (`/release`) devolve para todas. Eventos `assigned` e
+  `released` para quem declara `X-DMK-Features: routing`. Sistemas antigos funcionam sem mudança.
+- Tipo de conexão **Avisos** (cobrança, alertas do Smart Core): envia sem assumir e sem ser barrada; o
+  aviso aparece no histórico de quem atende. Troca pelo painel, sem gerar código novo.
+- Histórico guardado no conector, numa pasta por conexão: `dados/sessoes/<sessão>/atendimento/`
+  (`geral/` para leads, `conexoes/<ID>/` para cada conexão, com `LEIA-ME.txt`). Rotas `/conversations`,
+  `/messages`, `/file`. Anexos ficam 180 dias.
+- Painel: aba **Atendimentos** na ficha da sessão (quem atende cada conversa, Liberar, Transferir, modo
+  Leads/Todos); estados Reconectando e Aberta em outro lugar.
+- `dmk-wa atendimentos | liberar | distribuicao | conferir` e `ferramentas/conferir-baileys.js`
+  (confere a biblioteca e abre uma conexão de teste até o QR, sem parear nada). O CI faz o mesmo a cada publicação.
+
+**Painel (correções):** o selo amarelo "Aguardando QR" saía desmontado (a classe `.qr` era também a do
+quadro do QR); o selo de estado dentro da ficha saía em maiúsculas; confirmar um aviso apagava o fundo
+escurecido com a ficha ainda aberta; um pedido sem chave ao abrir a página gerava erro 401 no console.
+
 ## 1.2.1 — 19/11/2026
 
 - Visual do painel no padrão DMK: conteúdo com folga nas laterais (nada encostado na borda da janela) e centralizado com largura máxima em monitor largo; corpo dos modais com a mesma folga.
