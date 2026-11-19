@@ -1,5 +1,13 @@
 # Histórico
 
+## 1.0.5 — 19/11/2026
+
+- Entrada: o comando de pegar a chave virou uma caixa de código com botão Copiar (o ícone vira um check ao copiar); texto numa linha só, sem quebrar.
+- Sistemas ligados: além de Revogar, botão **Excluir** remove a autorização do histórico da sessão (com confirmação; se ainda ativa, o acesso é cortado na hora) — a rota `autorizacoes/excluir` já existia no conector, faltava na tela. Botões das linhas agrupados, compactos, sem quebrar linha.
+- O copiar do código de autorização ganhou o mesmo retorno visual (check), sem aviso de erro para uma ação que deu certo.
+- Botão **Testar** na ficha da sessão: confere ativação, conexão, sistemas ligados, fila e última recebida — e, se um telefone for informado, envia UMA mensagem de teste real pela sessão (rota nova `POST /admin/v1/sessoes/:id/teste`). Nada é enviado sem telefone.
+- Efeitos profissionais: entrada suave de modais/fundo/toast, KPIs com elevação no hover, bolinha de saúde e selo "Aguardando QR" pulsando, transições nos controles — tudo respeitando `prefers-reduced-motion`.
+
 ## 1.0.4 — 19/11/2026
 
 - Painel com visual novo, profissional, na identidade DMK (azul tecnológico, azul-escuro, preto e branco): marca da DMK no topo e na tela de entrada, topo em gradiente com filete de acento, KPIs com ícone em chip e número em destaque, lista com cabeçalho em micro-maiúsculas e realce lateral no hover, selos de estado com anel colorido, QR emoldurado em cartão azul-escuro (destaque para a leitura), código de autorização com caixa tracejada, foco visível nos controles e rolagem fina na lista. Só aparência: classes, ids e comportamento do painel são os mesmos.

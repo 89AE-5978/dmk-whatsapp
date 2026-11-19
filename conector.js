@@ -48,6 +48,7 @@ function criarServidor({ dataDir, chaveAdmin, fabricaMotor, simulado = false, lo
     if (!acao && req.method === 'GET') return json(sessoes.ver(id));
     if (acao === 'autorizacoes' && !cid && req.method === 'GET') return json({ autorizacoes: sessoes.autorizacoes(id) });
     if (req.method !== 'POST') throw fail('Rota não encontrada.', 404);
+    if (acao === 'teste') return json(await sessoes.testar(id, b));
     if (acao === 'conectar') return json(await sessoes.conectar(id));
     if (acao === 'pausar') return json(await sessoes.pausar(id));
     if (acao === 'reiniciar') return json(await sessoes.reiniciar(id));

@@ -48,6 +48,15 @@
   });
   $('#btSair').addEventListener('click', () => entrar(''));
 
+  // Copiar com retorno visual (o ícone vira um check por um instante). Sem avisos nativos; se o
+  // navegador negar a área de transferência, o texto fica selecionado para copiar com Ctrl+C.
+  async function copiar(texto, bt) {
+    try { await navigator.clipboard.writeText(texto); } catch { return false; }
+    if (bt) { const use = bt.querySelector('use'), antes = use.getAttribute('href'); use.setAttribute('href', '#i-ok'); bt.classList.add('copiado'); setTimeout(() => { use.setAttribute('href', antes); bt.classList.remove('copiado'); }, 1600); }
+    return true;
+  }
+  $('#btCopiarComando').addEventListener('click', async () => { if (!await copiar($('#cmdChave').value, $('#btCopiarComando'))) $('#cmdChave').select(); });
+
   // ---------- atualização do conector pelo painel ----------
   // GET /atualizacao compara as versões; POST grava o pedido que o systemd (root) atende com o
   // atualizar.sh de sempre (backup e volta automática). Aqui só acompanhamos pelo /health.
@@ -236,6 +245,7 @@
           ? '<button class="bt" data-acao-ficha="pausar"><svg><use href="#i-pausa"/></svg><span>Pausar</span></button>'
           : '<button class="bt bt-principal" data-acao-ficha="conectar"><svg><use href="#i-play"/></svg><span>Conectar</span></button>'}
         <button class="bt" data-acao-ficha="reiniciar"><svg><use href="#i-girar"/></svg><span>Reiniciar</span></button>
+        <button class="bt" data-acao-ficha="teste"><svg><use href="#i-ok"/></svg><span>Testar</span></button>
         <button class="bt" data-acao-ficha="autorizar"><svg><use href="#i-chave"/></svg><span>Ligar sistema</span></button>
         <button class="bt bt-perigo" data-acao-ficha="trocar-numero"><svg><use href="#i-wifi"/></svg><span>Trocar número</span></button>
         <button class="bt bt-perigo" data-acao-ficha="excluir"><svg><use href="#i-lixo"/></svg><span>Excluir sessão</span></button>
@@ -249,12 +259,36 @@
     if (alvoQr) alvoQr.innerHTML = s.status === 'AGUARDANDO_QR' && s.qr ? `<div class="qr"><img src="${s.qr}" alt="QR Code do WhatsApp" width="240" height="240"><p>No celular: WhatsApp → Aparelhos conectados → Conectar um aparelho, e aponte para este código. Ele é renovado sozinho enquanto não for lido.</p></div>` : '';
   }
   async function acaoFicha(m, id, acao, bt) {
+    if (acao === 'teste') return abrirTeste(id);
     if (acao === 'conectar' || acao === 'reiniciar') { await chamar('POST', `/sessoes/${id}/${acao}`, null, bt); await carregar(); return atualizarQrSeNecessario(id); }
     if (acao === 'pausar') { await chamar('POST', `/sessoes/${id}/pausar`, null, bt); return carregar(); }
     if (acao === 'autorizar') return abrirAutorizar(id);
     if (acao === 'trocar-numero') return confirmarPerigo('Trocar o número', 'O número atual é desconectado agora mesmo e um novo QR é mostrado. Os sistemas ligados a esta sessão passam a falar pelo número novo.', async (bt2) => { await chamar('POST', `/sessoes/${id}/novo-qr`, { confirmado: true }, bt2); m.querySelector('.aba').click(); await carregar(); return atualizarQrSeNecessario(id); });
     if (acao === 'excluir') return confirmarPerigo('Excluir sessão', 'O número é desconectado e as autorizações desta sessão deixam de valer. O que os sistemas já gravaram do lado deles continua lá.', async (bt2) => { await chamar('POST', `/sessoes/${id}/excluir`, { confirmado: true }, bt2); m.remove(); fundo.hidden = true; return carregar(); });
   }
+  // ---------- teste da sessão (checagens + envio de teste opcional) ----------
+  // Abre já conferindo (sem enviar nada). "Enviar teste" manda UMA mensagem real para o número
+  // informado — por isso só envia se o campo for preenchido. Recebimento: responda no celular e
+  // use "Conferir de novo" — a checagem de última recebida avança.
+  function abrirTeste(id) {
+    const m = abrirModal({ titulo: 'Teste da sessão', estreito: true, corpo: `
+      <ul class="checagens" data-teste-lista><li data-ok="null"><span class="sinal"><svg><use href="#i-girar"/></svg></span><div><b>Conferindo…</b><span>Consultando a sessão.</span></div></li></ul>
+      <div class="campo"><label for="telTeste">Enviar mensagem de teste para (opcional)</label><input id="telTeste" inputmode="numeric" maxlength="15" placeholder="DDI+DDD+número, ex.: 5587999990000" spellcheck="false">
+        <span class="dica">Só envia se você preencher. Use um número seu: a mensagem sai de verdade por esta sessão.</span></div>`,
+      rodape: [
+        { texto: 'Conferir de novo', onClick: (mm, bt) => rodarTeste(mm, id, bt, false) },
+        { texto: 'Enviar teste', principal: true, onClick: (mm, bt) => rodarTeste(mm, id, bt, true) },
+      ] });
+    rodarTeste(m, id);
+  }
+  async function rodarTeste(m, id, bt, comEnvio) {
+    const telefone = comEnvio ? $('#telTeste', m).value.replace(/\D/g, '') : '';
+    if (comEnvio && !telefone) { avisar('Preencha o número para enviar a mensagem de teste.'); $('#telTeste', m).focus(); return; }
+    const r = await chamar('POST', `/sessoes/${id}/teste`, telefone ? { telefone } : null, bt).catch(() => null); if (!r || !document.body.contains(m)) return;
+    const icone = (ok) => ok === true ? 'i-ok' : ok === false ? 'i-fechar' : 'i-fila';
+    $('[data-teste-lista]', m).innerHTML = r.checks.map((c) => `<li data-ok="${c.ok}"><span class="sinal"><svg><use href="#${icone(c.ok)}"/></svg></span><div><b>${esc(c.nome)}</b><span>${esc(c.detalhe)}</span></div></li>`).join('');
+  }
+
   function confirmarPerigo(titulo, texto, onConfirmar) {
     abrirModal({ titulo, estreito: true, corpo: `<p class="aviso perigo">${esc(texto)}</p>`, rodape: [
       { texto: 'Cancelar', onClick: (m) => { m.remove(); fundo.hidden = true; } },
@@ -280,7 +314,7 @@
       <p>Vale 10 minutos e um uso só. Entregue este código a quem for ligar o sistema (veja também <code>docs/PROMPT-PARA-AGENTES.md</code> no repositório).</p>
       <div class="codigo"><input readonly value="${esc(codigo)}" id="valorCodigo"><button class="bt bt-icone" id="btCopiar" title="Copiar"><svg><use href="#i-copiar"/></svg></button></div>`,
       rodape: [{ texto: 'Fechar', principal: true, onClick: (m) => { m.remove(); fundo.hidden = true; } }] });
-    $('#btCopiar').addEventListener('click', async () => { try { await navigator.clipboard.writeText(codigo); avisar('Código copiado.'); } catch { $('#valorCodigo').select(); } });
+    $('#btCopiar').addEventListener('click', async () => { if (!await copiar(codigo, $('#btCopiar'))) $('#valorCodigo').select(); });
   }
 
   // ---------- sistemas ligados ----------
@@ -293,9 +327,10 @@
         <td>${esc(a.installation)}</td><td>${esc(a.label)}</td>
         <td>${a.revoked_at ? '<span class="selo off">Revogada</span>' : a.paired ? '<span class="selo on">Ligada</span>' : '<span class="selo qr">Aguardando</span>'}</td>
         <td class="num">${a.pending}</td>
-        <td>${a.revoked_at ? '' : `<button class="bt bt-perigo" data-revogar="${a.id}">Revogar</button>`}</td>
+        <td><div class="grupo-bt">${a.revoked_at ? '' : `<button class="bt bt-mini bt-perigo" data-revogar="${a.id}"><svg><use href="#i-fechar"/></svg><span>Revogar</span></button>`}<button class="bt bt-mini" data-excluir-aut="${a.id}" title="Excluir do histórico desta sessão"><svg><use href="#i-lixo"/></svg><span>Excluir</span></button></div></td>
       </tr>`).join('')}</tbody></table>` : '<p class="vazio" style="display:block">Nenhum sistema ligado a esta sessão.</p>';
-    $$('[data-revogar]', alvo).forEach((bt) => bt.addEventListener('click', () => confirmarPerigo('Revogar acesso', 'O sistema para de ler e enviar por esta sessão na próxima consulta.', async (bt2) => { await chamar('POST', `/sessoes/${id}/autorizacoes/${bt.dataset.revogar}/revogar`, null, bt2); carregarAutorizacoes(m, id); carregar(); })));
+    $('[data-revogar]', alvo).forEach((bt) => bt.addEventListener('click', () => confirmarPerigo('Revogar acesso', 'O sistema para de ler e enviar por esta sessão na próxima consulta.', async (bt2) => { await chamar('POST', `/sessoes/${id}/autorizacoes/${bt.dataset.revogar}/revogar`, null, bt2); carregarAutorizacoes(m, id); carregar(); })));
+    $('[data-excluir-aut]', alvo).forEach((bt) => bt.addEventListener('click', () => confirmarPerigo('Excluir do histórico', 'A autorização sai da lista desta sessão. Se ainda estiver ativa, o acesso do sistema é cortado agora. O que o sistema já gravou do lado dele continua lá.', async (bt2) => { await chamar('POST', `/sessoes/${id}/autorizacoes/${bt.dataset.excluirAut}/excluir`, null, bt2); carregarAutorizacoes(m, id); carregar(); })));
   }
 
   // ---------- início ----------
