@@ -1,0 +1,8 @@
+# DMK WhatsApp - o que nunca vai para o GitHub
+dados/
+backups/
+node/
+node_modules/
+logs/
+*.log
+.env

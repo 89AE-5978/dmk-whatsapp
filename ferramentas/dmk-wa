@@ -1,0 +1,7 @@
+#!/usr/bin/env bash
+# DMK WhatsApp - comando de administração. Uso: dmk-wa ajuda
+set -euo pipefail
+AQUI="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
+RAIZ="$(dirname "$AQUI")"
+NODE="$RAIZ/node/bin/node"; [[ -x "$NODE" ]] || NODE="$(command -v node)"
+exec "$NODE" "$AQUI/dmk-wa.js" "$@"

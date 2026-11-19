@@ -1,0 +1,13 @@
+name: testes
+on: [push, pull_request]
+jobs:
+  testes:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: NODE_VERSION
+      - run: for f in instalar/*.sh ferramentas/dmk-wa; do bash -n "$f"; done
+      # Os testes usam o motor simulado: não precisam do Baileys nem de rede.
+      - run: node --test tests/*.test.js
