@@ -1,5 +1,9 @@
 # Histórico
 
+## 1.0.1 — 19/11/2026
+
+- Corrigido: a tela de entrada do painel (`/painel`) testava a chave de administrador antes de guardá-la na variável usada para montar o cabeçalho `Authorization`, então a chamada de teste sempre ia sem chave e qualquer chave digitada aparecia como "Chave incorreta". Agora a chave é aplicada antes do teste.
+
 ## 1.0.0 — 19/11/2026
 
 Primeira versão.

@@ -40,10 +40,11 @@
   $('#formEntrada').addEventListener('submit', async (ev) => {
     ev.preventDefault();
     const valor = $('#chave').value.trim();
+    chave = valor; // precisa estar valendo antes do teste, senão a chamada abaixo sempre vai sem chave (Bearer vazio) e qualquer chave digitada parece errada
     try { await api('GET', '/sessoes'); } catch (e) {
       chave = ''; if (!/inválida/.test(e.message)) return avisar(e.message); return avisar('Chave incorreta.');
     }
-    chave = valor; entrar(valor);
+    entrar(valor);
   });
   $('#btSair').addEventListener('click', () => entrar(''));
 
