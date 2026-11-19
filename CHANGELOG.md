@@ -1,5 +1,11 @@
 # Histórico
 
+## 1.3.2 — 19/11/2026
+
+- Modo diagnóstico para o recebimento: `touch /opt/dmk-whatsapp/dados/diagnostico` liga, apagar o arquivo desliga
+  (vale em até 5 s, sem reiniciar). Cada mensagem que chega gera linhas `[DIAG]` só com o formato — o nó bruto
+  entregue pelo servidor, o pacote depois de decifrar e se o conector entregou às conexões. Nunca o texto.
+
 ## 1.3.1 — 19/11/2026
 
 Teste na VPS da 1.3.0: envio ok, mas nenhuma mensagem recebida chegava aos sistemas — e não aparecia nada no log.
