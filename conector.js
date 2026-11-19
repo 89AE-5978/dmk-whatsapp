@@ -118,7 +118,25 @@ function criarServidor({ dataDir, chaveAdmin, fabricaMotor, simulado = false, lo
   return { servidor, sessoes, async encerrar() { await new Promise((ok) => servidor.close(ok)); servidor.closeAllConnections?.(); await sessoes.encerrar(); } };
 }
 
+// A biblioteca de criptografia (libsignal, dentro do Baileys) escreve no console a sessão inteira — com as
+// CHAVES PRIVADAS — a cada troca de sessão ("Closing session: SessionEntry {...}"). Isso ia parar no journal.
+// Aqui as mensagens dela viram uma linha curta, sem objeto nenhum; o resto do console segue igual.
+function limparConsoleDaCriptografia() {
+  const RUIDO = /^(Closing session|Closing open session|Removing old closed session|Session already closed|Session already open|Migrating session|Decrypted message with closed session|Opening session|V1 session storage migration)/i;
+  const RESUMIR = /^(Failed to decrypt|Session error|Bad MAC|No session|Unhandled bucket type)/i;
+  for (const nivel of ['log', 'info', 'warn', 'error']) {
+    const original = console[nivel].bind(console);
+    console[nivel] = (...args) => {
+      const primeiro = typeof args[0] === 'string' ? args[0] : '';
+      if (RUIDO.test(primeiro)) return;
+      if (RESUMIR.test(primeiro)) return original('[criptografia] ' + primeiro.slice(0, 120) + (args[1] instanceof Error ? ' (' + args[1].message + ')' : ''));
+      original(...args);
+    };
+  }
+}
+
 if (require.main === module) {
+  limparConsoleDaCriptografia();
   const dataDir = path.resolve(process.env.DMK_WA_DADOS || path.join(__dirname, 'dados'));
   const porta = Number(process.env.DMK_WA_PORTA || 8098), simulado = process.env.DMK_WA_SIMULADO === '1';
   const arquivoChave = path.join(dataDir, 'admin.key');

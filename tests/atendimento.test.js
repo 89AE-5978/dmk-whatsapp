@@ -156,6 +156,9 @@ test('conteúdo de reenvio sobrevive a reinício (7 dias) e só serve mensagens 
 test('conexão de avisos (cobrança, alertas) envia sem assumir e sem ser barrada', async (t) => {
   const s = await subir(pasta()); t.after(() => s.app.encerrar());
   const id = await sessao(s), loja = await conexao(s, id, 'Loja'), avisos = await conexao(s, id, 'SmartCore', 'avisos');
+  await msg(s, id, '5581999990005', 'lead que avisos não deve receber');
+  assert.deepEqual((await eventos(s, avisos)).filter(([t]) => t === 'message'), [], 'conexão de avisos não recebe leads');
+  assert.deepEqual((await eventos(s, loja)).map(([, x]) => x), ['lead que avisos não deve receber']);
   assert.equal((await s.pub('POST', '/send', { to: '5581999990004', text: 'Sua fatura vence amanhã', request_id: rid() }, avisos.token)).status, 200);
   assert.equal((await s.admin('GET', `/sessoes/${id}/atendimentos`)).corpo.conversas[0].owner, null, 'aviso não assume');
   await msg(s, id, '5581999990004', 'já paguei');

@@ -1,5 +1,18 @@
 # Histórico
 
+## 1.3.1 — 19/11/2026
+
+Teste na VPS da 1.3.0: envio ok, mas nenhuma mensagem recebida chegava aos sistemas — e não aparecia nada no log.
+- O socket do WhatsApp rodava com o registro de erros desligado: "failed to decrypt message" (mensagem recebida que
+  não abre) não aparecia em lugar nenhum. Agora avisos e erros dele vão para o journal, numa linha curta, sem repetir.
+- Mensagem recebida que não pôde ser decifrada era descartada em silêncio. Agora é contada, avisada no journal e
+  aparece no Testar do painel, com a orientação de refazer o pareamento quando nenhuma abre.
+- Uma linha por mensagem recebida no journal (final do número, sem o texto), para conferir se chegou.
+- A biblioteca de criptografia despejava a sessão inteira — com chaves privadas — no journal a cada troca de sessão
+  ("Closing session: SessionEntry"). Essas mensagens saem do log; falhas de decifrar viram uma linha curta.
+- Conexão do tipo Avisos não recebe mais leads (só os recibos dos próprios envios): a fila dela enchia de mensagens
+  que ninguém lia.
+
 ## 1.3.0 — 19/11/2026
 
 **Travamento e "a mensagem vai, mas ninguém consegue ler"** (celular do cliente em "Aguardando mensagem"):

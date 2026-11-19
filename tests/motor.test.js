@@ -86,3 +86,17 @@ test('reenvio: conteúdo guardado em disco volta como a mensagem original e paus
   assert.deepEqual(await lib.sockets[1].opcoes.getMessage({ id: 'DISCO1', remoteJid: chave.remoteJid, fromMe: true }), { conversation: 'do disco' }, 'bytes do disco decodificados');
   await motor.stop(conta, { logout: true });
 });
+
+test('mensagem que não pôde ser decifrada é contada e avisada (antes sumia em silêncio)', async () => {
+  const lib = bibliotecaFalsa(), runtimes = new Map(), recebidas = [];
+  const motor = createBaileysManager({ runtimeMap: runtimes, authRoot: raiz(), loadModule: () => lib.modulo, onMessage: async (c, m) => recebidas.push(m.text) });
+  await motor.start(conta); await conectado(runtimes);
+  const ev = lib.sockets[0].ev;
+  ev.emit('messages.upsert', { type: 'notify', messages: [{ key: { remoteJid: '123456@lid', id: 'C1', fromMe: false }, messageStubType: 2, messageStubParameters: ['No session'] }] });
+  ev.emit('messages.upsert', { type: 'notify', messages: [{ key: { remoteJid: '123456@lid', remoteJidAlt: '5581999990001@s.whatsapp.net', id: 'C2', fromMe: false }, message: { conversation: 'abriu' } }] });
+  await esperar(50);
+  assert.equal(runtimes.get(1).decryptFailures, 1);
+  assert.deepEqual(recebidas, ['abriu']);
+  assert.equal(typeof lib.sockets[0].opcoes.logger.error, 'function');
+  await motor.stop(conta);
+});
