@@ -44,6 +44,7 @@ Fora da pasta: `/etc/systemd/system/dmk-wa-conector.service` e `/usr/local/bin/d
 - `docs/INSTALACAO.md` — instalar, criar a primeira sessão, atualizar, desinstalar.
 - `docs/LIGAR-UM-SISTEMA.md` — como ligar a gestão, o Smart Core, o Prisma ou um sistema novo.
 - `docs/API.md` — referência das operações.
+- `docs/PAINEL.md` — painel web para gerenciar sem terminal (acesso por túnel SSH).
 - `docs/PROMPT-PARA-AGENTES.md` — texto pronto para entregar a quem (ou ao agente que) for ligar um sistema.
 
 ## Testes

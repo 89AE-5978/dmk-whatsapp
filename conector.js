@@ -8,6 +8,7 @@
 // Documentação: docs/API.md e docs/LIGAR-UM-SISTEMA.md.
 const http = require('node:http'), crypto = require('node:crypto'), fs = require('node:fs'), path = require('node:path'), { Readable } = require('node:stream');
 const criarSessoes = require('./lib/sessoes');
+const painel = require('./lib/painel');
 const VERSAO = fs.readFileSync(path.join(__dirname, 'VERSION'), 'utf8').trim();
 const BASE = '/api/public/dmk-connector/v1', ADMIN = '/admin/v1', LIMITE_CORPO = 15 * 1024 * 1024;
 const fail = (m, status = 400) => Object.assign(Error(m), { status });
@@ -78,6 +79,7 @@ function criarServidor({ dataDir, chaveAdmin, fabricaMotor, simulado = false, lo
         const l = sessoes.listar();
         return json({ ok: true, servico: 'dmk-whatsapp', versao: VERSAO, node: process.version, simulado, sessoes: l.length, conectadas: l.filter((s) => s.status === 'CONECTADO').length, ativas: l.filter((s) => s.ativa).length });
       }
+      if (p === '/' || p === '/painel' || p.startsWith('/painel/')) return painel.servir(req, p, res);
       if (p.startsWith(BASE + '/')) return await publico(req, p, json, res);
       if (p.startsWith(ADMIN + '/')) return await admin(req, p.slice(ADMIN.length), json);
       throw fail('Rota não encontrada.', 404);
@@ -103,6 +105,7 @@ if (require.main === module) {
   });
   app.servidor.listen(porta, '127.0.0.1', () => {
     console.log(`DMK WhatsApp ${VERSAO} em http://127.0.0.1:${porta} · dados em ${dataDir}${simulado ? ' · MODO SIMULADO (não fala com o WhatsApp)' : ''}`);
+    console.log(`Painel: http://127.0.0.1:${porta}/painel (só desta máquina; de fora, por túnel SSH — veja docs/PAINEL.md)`);
     app.sessoes.iniciar();
   });
   let saindo = false;

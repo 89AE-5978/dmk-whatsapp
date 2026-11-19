@@ -17,6 +17,8 @@ Se a porta 8098 estiver ocupada: `DMK_WA_PORTA=8100 bash /opt/dmk-whatsapp/insta
 
 Termina com `PRONTO: DMK WhatsApp <versão> ativo`.
 
+Também sobe um painel web em `/painel` (veja `docs/PAINEL.md` para acessar por túnel SSH).
+
 ## 2. Criar e conectar uma sessão
 
 ```bash

@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b2447">
+<title>DMK WhatsApp — conector</title>
+<link rel="stylesheet" href="/painel/painel.css">
+</head>
+<body>
+<!-- Ícones: um desenho só, usado em todo o painel. Nada vem de fora. -->
+<svg hidden aria-hidden="true"><defs>
+<symbol id="i-wifi" viewBox="0 0 24 24"><path d="M5 12.5a10 10 0 0 1 14 0M8 16a6 6 0 0 1 8 0"/><circle cx="12" cy="19.5" r="1.3" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-fone" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></symbol>
+<symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5 19 12 7 19.5z"/></symbol>
+<symbol id="i-pausa" viewBox="0 0 24 24"><path d="M8.5 5v14M15.5 5v14"/></symbol>
+<symbol id="i-girar" viewBox="0 0 24 24"><path d="M20 12a8 8 0 1 1-2.4-5.7M20 4v4h-4"/></symbol>
+<symbol id="i-lixo" viewBox="0 0 24 24"><path d="M4.5 6.5h15M9.5 6.5V4h5v2.5M6.5 6.5l1 13h9l1-13M10 10v6M14 10v6"/></symbol>
+<symbol id="i-chave" viewBox="0 0 24 24"><circle cx="8" cy="12" r="3.5"/><path d="M11.5 12H21M18 12v3.5M15 12v2.5"/></symbol>
+<symbol id="i-mais" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></symbol>
+<symbol id="i-lupa" viewBox="0 0 24 24"><circle cx="11" cy="11" r="6"/><path d="m16 16 4 4"/></symbol>
+<symbol id="i-filtro" viewBox="0 0 24 24"><path d="M4 6h16l-6 7v5l-4 2v-7z"/></symbol>
+<symbol id="i-fechar" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
+<symbol id="i-copiar" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 6V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h1"/></symbol>
+<symbol id="i-sair" viewBox="0 0 24 24"><path d="M15 5H6a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h9M12 12h9M18 9l3 3-3 3"/></symbol>
+<symbol id="i-fila" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
+<symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 4 2.5 20h19z"/><path d="M12 10v4.5"/><circle cx="12" cy="17.3" r="1" fill="currentColor" stroke="none"/></symbol>
+</defs></svg>
+
+<!-- Entrada: a chave de administrador fica só nesta aba do navegador. -->
+<section id="entrada" class="entrada">
+  <form class="cartao-entrada" id="formEntrada" autocomplete="off">
+    <h1>DMK WhatsApp</h1>
+    <p class="sub">Conector global de WhatsApp — painel de administração</p>
+    <label for="chave">Chave de administrador</label>
+    <input id="chave" type="password" spellcheck="false" placeholder="64 caracteres" required>
+    <p class="ajuda">Na VPS: <code>cat /opt/dmk-whatsapp/dados/admin.key</code></p>
+    <button class="bt bt-principal" type="submit">Entrar</button>
+  </form>
+</section>
+
+<!-- Tela fixa: só a lista rola. -->
+<main id="tela" class="tela" hidden>
+  <header class="topo">
+    <div class="marca"><span class="ponto" id="pontoServico"></span><strong>DMK WhatsApp</strong><span class="versao" id="versao"></span></div>
+    <div class="grupo-bt">
+      <button class="bt bt-icone" id="btAtualizar" title="Atualizar agora"><svg><use href="#i-girar"/></svg></button>
+      <button class="bt bt-icone" id="btSair" title="Sair do painel"><svg><use href="#i-sair"/></svg></button>
+    </div>
+  </header>
+
+  <section class="kpis" id="kpis"></section>
+
+  <section class="barra">
+    <div class="busca"><svg><use href="#i-lupa"/></svg><input id="busca" type="search" placeholder="Pesquisar em tudo da lista" spellcheck="false"></div>
+    <div class="grupo-bt">
+      <button class="bt" id="btFiltros"><svg><use href="#i-filtro"/></svg><span>Filtros</span><em id="contaFiltros" hidden></em></button>
+      <button class="bt bt-principal" id="btNova"><svg><use href="#i-mais"/></svg><span>Nova sessão</span></button>
+    </div>
+  </section>
+
+  <section class="lista">
+    <table class="dmk-lista">
+      <thead><tr>
+        <th data-col="id">ID</th><th data-col="status">Estado</th><th data-col="telefone">Número</th>
+        <th data-col="dono">Dono</th><th data-col="nome">Nome</th>
+        <th data-col="autorizacoes" class="num">Sistemas</th><th data-col="eventos_pendentes" class="num">Fila</th>
+      </tr></thead>
+      <tbody id="corpo"></tbody>
+    </table>
+    <p class="vazio" id="vazio" hidden></p>
+  </section>
+</main>
+
+<div class="fundo" id="fundo" hidden></div>
+<div class="toast" id="toast" hidden role="alert"><svg><use href="#i-alerta"/></svg><span id="toastTexto"></span></div>
+<script src="/painel/painel.js"></script>
+</body>
+</html>
