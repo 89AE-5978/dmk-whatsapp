@@ -10,6 +10,7 @@
   --linha: 2.6rem; --raio: .5rem;
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
+[hidden] { display: none !important; } /* sem isso, .entrada/.tela (que definem display:grid) ignoram o atributo hidden */
 html, body { height: 100%; overflow: hidden; }            /* a página nunca rola */
 body { font: 400 .875rem/1.45 "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif; color: var(--texto); background: var(--fundo); -webkit-text-size-adjust: 100%; }
 svg { width: 1.125rem; height: 1.125rem; fill: none; stroke: currentColor; stroke-width: 1.8; stroke-linecap: round; stroke-linejoin: round; flex: none; }
