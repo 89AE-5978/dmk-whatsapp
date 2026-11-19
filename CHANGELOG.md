@@ -1,5 +1,10 @@
 # Histórico
 
+## 1.2.1 — 19/11/2026
+
+- Visual do painel no padrão DMK: conteúdo com folga nas laterais (nada encostado na borda da janela) e centralizado com largura máxima em monitor largo; corpo dos modais com a mesma folga.
+- Ações da ficha da sessão (Pausar, Reiniciar, Testar, Ligar sistema, Trocar número, Excluir) em botões compactos que cabem numa linha só, sem cortar; se a tela for muito estreita, o grupo rola na horizontal, como nas demais telas.
+
 ## 1.2.0 — 19/11/2026
 
 - `publicar-nginx.sh --painel`: publica também o painel (/painel/), a administração (/admin/v1/) e a saúde (/health) no domínio HTTPS — dá para administrar direto pelo navegador, sem túnel SSH. A chave de administrador continua obrigatória em toda rota de administração, e o script confere na prática: se a administração abrir sem chave, desfaz a publicação sozinho. Rodar de novo sem `--painel` tira o painel do ar.

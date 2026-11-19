@@ -57,9 +57,11 @@ input::placeholder { color: #93a7c0; }
 input[type=search]::-webkit-search-cancel-button { display: none; }
 
 /* ---------- tela fixa ---------- */
-.tela { height: 100%; display: grid; grid-template-rows: auto auto auto 1fr; gap: .75rem; padding: 0 .875rem .875rem; }
+.tela { height: 100%; display: grid; grid-template-rows: auto auto auto 1fr; gap: .875rem; padding: 0 1.25rem 1.125rem; }
+/* Em monitor largo o conteúdo não fica esticado de borda a borda: centraliza com largura máxima. */
+.kpis, .barra, .lista { width: 100%; max-width: 96rem; margin-inline: auto; }
 .topo { position: relative; z-index: 5; display: flex; align-items: center; justify-content: space-between; gap: .75rem;
-        height: 3.25rem; margin: 0 -.875rem; padding: 0 .875rem; background: var(--grad-marca); color: var(--branco);
+        height: 3.25rem; margin: 0 -1.25rem; padding: 0 1.25rem; background: var(--grad-marca); color: var(--branco);
         box-shadow: 0 2px 10px rgba(7, 24, 47, .25); }
 .topo::after { content: ""; position: absolute; left: 0; right: 0; bottom: -2px; height: 2px; background: var(--grad-acento); opacity: .9; }
 .marca { display: flex; align-items: center; gap: .625rem; min-width: 0; }
@@ -146,7 +148,7 @@ input[type=search]::-webkit-search-cancel-button { display: none; }
        border-bottom: 2px solid transparent; cursor: pointer; white-space: nowrap; transition: color .15s, border-color .15s; }
 .aba:hover { color: var(--azul-escuro); }
 .aba[aria-selected=true] { color: var(--azul); border-bottom-color: var(--azul); }
-.corpo-modal { padding: 1.125rem 1rem; overflow: auto; min-height: 0; scrollbar-width: thin; scrollbar-color: var(--borda-forte) transparent; }
+.corpo-modal { padding: 1.125rem 1.25rem; overflow: auto; min-height: 0; scrollbar-width: thin; scrollbar-color: var(--borda-forte) transparent; }
 .modal footer { display: flex; align-items: center; justify-content: flex-end; gap: .4rem; padding: .7rem 1rem;
                 border-top: 1px solid var(--borda); background: var(--azul-nevoa); overflow-x: auto; scrollbar-width: none; }
 .modal footer::-webkit-scrollbar { display: none; }
@@ -172,6 +174,9 @@ input[type=search]::-webkit-search-cancel-button { display: none; }
 .codigo .bt-icone { background: var(--azul); border-color: var(--azul); color: #fff; box-shadow: 0 2px 8px rgba(18, 104, 237, .3); }
 .codigo .bt-icone:hover { background: #0f58c9; border-color: #0f58c9; color: #fff; }
 .codigo .bt-icone.copiado, .codigo .bt-icone.copiado:hover { background: var(--verde); border-color: var(--verde); }
+/* Grupo de ações da ficha: botões compactos para caberem numa linha; se não couber, rola sem cortar. */
+.grupo-rodape .bt { height: 2.25rem; padding: 0 .7rem; font-size: .8125rem; }
+.grupo-rodape .bt svg { width: 1rem; height: 1rem; }
 /* Botões compactos dentro das linhas de lista (grupo numa linha só; rola se não couber). */
 .bt-mini { height: 1.9rem; padding: 0 .6rem; font-size: .75rem; gap: .3rem; box-shadow: none; }
 .bt-mini svg { width: .95rem; height: .95rem; }

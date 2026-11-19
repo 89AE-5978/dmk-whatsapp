@@ -248,7 +248,7 @@
         <button class="bt" data-acao-ficha="teste"><svg><use href="#i-ok"/></svg><span>Testar</span></button>
         <button class="bt" data-acao-ficha="autorizar"><svg><use href="#i-chave"/></svg><span>Ligar sistema</span></button>
         <button class="bt bt-perigo" data-acao-ficha="trocar-numero"><svg><use href="#i-wifi"/></svg><span>Trocar número</span></button>
-        <button class="bt bt-perigo" data-acao-ficha="excluir"><svg><use href="#i-lixo"/></svg><span>Excluir sessão</span></button>
+        <button class="bt bt-perigo" data-acao-ficha="excluir" title="Excluir esta sessão"><svg><use href="#i-lixo"/></svg><span>Excluir</span></button>
       </div>`;
     $$('[data-acao-ficha]', m).forEach((bt) => bt.addEventListener('click', () => acaoFicha(m, s.id, bt.dataset.acaoFicha, bt)));
   }
