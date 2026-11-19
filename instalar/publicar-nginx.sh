@@ -12,15 +12,21 @@
 # se algo falhar, remove o que criou e recarrega o Nginx como estava.
 #
 # Uso:  sudo bash instalar/publicar-nginx.sh zap.danilodss.com.br voce@email.com
+#
+# Opção --painel: publica TAMBÉM o painel (/painel/), a administração (/admin/v1/) e a saúde
+# (/health) no domínio, protegidos por HTTPS + chave de administrador (64 hexadecimais, com
+# trava de tentativas por IP no conector). Sem a opção, nada disso sai de 127.0.0.1.
+# Para tirar o painel do ar depois, rode o script de novo SEM --painel.
 set -euo pipefail
 RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=instalar/comum.sh
 source "$RAIZ/instalar/comum.sh"
 
-DOMINIO=""; EMAIL=""; CONTA=""
+DOMINIO=""; EMAIL=""; CONTA=""; PAINEL=0
 while [[ $# -gt 0 ]]; do
   case "$1" in
     --conta) CONTA="${2:-}"; shift 2 || true;;
+    --painel) PAINEL=1; shift;;
     -*) parar_com "Opção desconhecida: $1";;
     *) if [[ -z "$DOMINIO" ]]; then DOMINIO="$1"; elif [[ -z "$EMAIL" ]]; then EMAIL="$1"; fi; shift;;
   esac
@@ -89,7 +95,34 @@ server {
     proxy_read_timeout 90;
     client_max_body_size 20m;
   }
-  # Administração, painel e saúde ficam só em 127.0.0.1.
+$( [[ $PAINEL -eq 1 ]] && cat <<FIM
+  # Painel publicado de propósito (--painel): a chave de administrador (64 hexadecimais, com
+  # trava de tentativas por IP) é exigida em toda rota de administração; o painel em si é só
+  # tela. /health acompanha porque o painel o usa (versão e acompanhamento da atualização).
+  location /painel {
+    proxy_pass http://127.0.0.1:$PORTA\$request_uri;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_read_timeout 90;
+  }
+  location /admin/v1/ {
+    proxy_pass http://127.0.0.1:$PORTA\$request_uri;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+    proxy_read_timeout 90;
+    client_max_body_size 20m;
+  }
+  location = /health {
+    proxy_pass http://127.0.0.1:$PORTA/health;
+    proxy_set_header Host \$host;
+    proxy_set_header X-Real-IP \$remote_addr;
+    proxy_set_header X-Forwarded-Proto \$scheme;
+  }
+FIM
+)
+  # Todo o resto fica só em 127.0.0.1.
   location / { return 404; }
 }
 EOF
@@ -131,11 +164,22 @@ if [[ "${DMK_WA_SEM_REDE:-}" != "1" ]]; then
   protocolo="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "https://$DOMINIO${BASE_PUBLICA}events" || true)"
   # Sem credencial o protocolo responde 401: é a prova de que chegou no conector.
   [[ "$protocolo" == "401" ]] || { dizer "O protocolo respondeu $protocolo em vez de 401 (sem credencial)."; false; }
-  for proibido in admin/v1/sessoes health painel/; do
-    codigo="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "https://$DOMINIO/$proibido" || true)"
-    [[ "$codigo" == "404" ]] || { dizer "PERIGO: https://$DOMINIO/$proibido respondeu $codigo; deveria ser 404."; false; }
-  done
-  dizer "OK: só o protocolo está exposto; administração, painel e saúde continuam fora."
+  if [[ $PAINEL -eq 1 ]]; then
+    codigo="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "https://$DOMINIO/painel/" || true)"
+    [[ "$codigo" == "200" ]] || { dizer "O painel respondeu $codigo em https://$DOMINIO/painel/; deveria ser 200."; false; }
+    # Sem a chave, a administração tem de barrar com 401 — nunca abrir.
+    codigo="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "https://$DOMINIO/admin/v1/sessoes" || true)"
+    [[ "$codigo" == "401" ]] || { dizer "PERIGO: a administração respondeu $codigo sem chave; deveria ser 401."; false; }
+    codigo="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "https://$DOMINIO/health" || true)"
+    [[ "$codigo" == "200" ]] || { dizer "A saúde respondeu $codigo em https://$DOMINIO/health; deveria ser 200."; false; }
+    dizer "OK: protocolo e painel no ar; a administração exige a chave (barrou sem ela)."
+  else
+    for proibido in admin/v1/sessoes health painel/; do
+      codigo="$(curl -s -o /dev/null -w '%{http_code}' --max-time 10 "https://$DOMINIO/$proibido" || true)"
+      [[ "$codigo" == "404" ]] || { dizer "PERIGO: https://$DOMINIO/$proibido respondeu $codigo; deveria ser 404."; false; }
+    done
+    dizer "OK: só o protocolo está exposto; administração, painel e saúde continuam fora."
+  fi
 fi
 
 trap - ERR
@@ -157,4 +201,9 @@ fi
 dizer ''
 dizer "PRONTO: o conector atende em https://$DOMINIO${BASE_PUBLICA}"
 dizer 'Nos sistemas DMK, informe apenas o domínio (sem caminho e sem porta).'
-dizer "A administração continua só em 127.0.0.1:$PORTA, por túnel SSH."
+if [[ $PAINEL -eq 1 ]]; then
+  dizer "Painel: https://$DOMINIO/painel/ (entre com a chave de administrador)."
+  dizer 'Para tirar o painel do ar, rode este script de novo SEM --painel.'
+else
+  dizer "A administração continua só em 127.0.0.1:$PORTA, por túnel SSH."
+fi

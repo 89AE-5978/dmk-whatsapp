@@ -19,8 +19,17 @@ function criarServidor({ dataDir, chaveAdmin, fabricaMotor, simulado = false, lo
   const sessoes = criarSessoes({ dataDir, fabricaMotor, log });
   const atualizacao = require('./lib/atualizacao')({ dataDir, versao: VERSAO, raiz: __dirname, ...(opcoesAtualizacao || {}) });
   const chave = hash(chaveAdmin), tentativas = new Map();
+  // Atrás do Nginx (publicar-nginx.sh --painel) todo pedido chega de 127.0.0.1: a trava de
+  // tentativas usaria um IP só e um curioso travaria o dono junto. O X-Real-IP que o Nginx
+  // põe resolve — e só é aceito vindo do loopback, para ninguém forjar o próprio IP.
+  function ipDe(req) {
+    const s = req.socket.remoteAddress || '';
+    const loopback = s === '127.0.0.1' || s === '::1' || s === '::ffff:127.0.0.1';
+    const real = String(req.headers['x-real-ip'] || '').trim();
+    return loopback && real ? real : s;
+  }
   function exigirAdmin(req) {
-    const ip = req.socket.remoteAddress, t = tentativas.get(ip);
+    const ip = ipDe(req), t = tentativas.get(ip);
     if (t && t.n >= 10 && t.ate > Date.now()) throw fail('Muitas tentativas com chave errada. Aguarde um minuto.', 429);
     const dada = String(req.headers.authorization || '').replace(/^Bearer /, '');
     if (!crypto.timingSafeEqual(hash(dada), chave)) {

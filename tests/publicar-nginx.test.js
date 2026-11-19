@@ -169,3 +169,53 @@ test('aceita a conta informada na linha de comando', () => {
   assert.match(fs.readFileSync(c.registro, 'utf8'), /--account ce82beef/);
   fs.rmSync(c.base, { recursive: true, force: true });
 });
+
+// --- Opção --painel: publica painel + administração protegidas pela chave ---
+
+// Pelo domínio: painel abre (200), administração barra sem chave (401), saúde responde (200).
+const CERTO_PAINEL = {
+  '127.0.0.1:8098/health': 200,
+  'dmk-connector/v1/events': 401,
+  'admin/v1/sessoes': 401,
+  [`${DOMINIO}/health`]: 200,
+  'painel/': 200,
+};
+
+test('--painel publica painel, administracao e saude, protegidos', () => {
+  const c = caixa({ codigos: CERTO_PAINEL });
+  const r = rodar(c, [DOMINIO, 'dono@exemplo.test', '--painel']);
+  assert.strictEqual(r.status, 0, r.stdout + r.stderr);
+  assert.match(r.stdout, /PRONTO/);
+  assert.match(r.stdout, /Painel: https:\/\/zap\.exemplo\.test\/painel\//);
+
+  const conf = fs.readFileSync(path.join(c.nginx, `sites-available/dmk-wa-${DOMINIO}`), 'utf8');
+  assert.match(conf, /location \/painel /, 'faltou publicar o painel');
+  assert.match(conf, /location \/admin\/v1\/ /, 'faltou publicar a administracao (o painel precisa dela)');
+  assert.match(conf, /location = \/health /, 'faltou publicar a saude (o painel usa para versao e atualizacao)');
+  assert.match(conf, /location \/ \{ return 404; \}/, 'todo o resto continua respondendo 404');
+  assert.match(conf, /\$request_uri/, 'o proxy do painel deve repassar o caminho pedido');
+});
+
+test('--painel: se a administracao abrir sem chave, desfaz a publicacao', () => {
+  const c = caixa({ codigos: { ...CERTO_PAINEL, 'admin/v1/sessoes': 200 } });
+  const r = rodar(c, [DOMINIO, 'dono@exemplo.test', '--painel']);
+  assert.notStrictEqual(r.status, 0);
+  assert.match(r.stdout, /PERIGO/);
+  assert.match(r.stdout, /FALHOU/);
+  assert.ok(!fs.existsSync(path.join(c.nginx, `sites-enabled/dmk-wa-${DOMINIO}`)), 'o site deveria ter sido removido');
+});
+
+test('--painel: se o painel nao responder, desfaz a publicacao', () => {
+  const c = caixa({ codigos: { ...CERTO_PAINEL, 'painel/': 404 } });
+  const r = rodar(c, [DOMINIO, 'dono@exemplo.test', '--painel']);
+  assert.notStrictEqual(r.status, 0);
+  assert.match(r.stdout, /FALHOU/);
+});
+
+test('sem --painel, a configuracao continua sem painel nem administracao', () => {
+  const c = caixa({ codigos: CERTO });
+  const r = rodar(c);
+  assert.strictEqual(r.status, 0, r.stdout + r.stderr);
+  const conf = fs.readFileSync(path.join(c.nginx, `sites-available/dmk-wa-${DOMINIO}`), 'utf8');
+  assert.ok(!/painel|admin/.test(conf), 'sem --painel nada de painel/administracao na configuracao');
+});

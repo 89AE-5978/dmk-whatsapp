@@ -1,5 +1,10 @@
 # Histórico
 
+## 1.2.0 — 19/11/2026
+
+- `publicar-nginx.sh --painel`: publica também o painel (/painel/), a administração (/admin/v1/) e a saúde (/health) no domínio HTTPS — dá para administrar direto pelo navegador, sem túnel SSH. A chave de administrador continua obrigatória em toda rota de administração, e o script confere na prática: se a administração abrir sem chave, desfaz a publicação sozinho. Rodar de novo sem `--painel` tira o painel do ar.
+- A trava de tentativas de chave errada agora enxerga o IP real de quem chega pelo Nginx (X-Real-IP, aceito só do loopback): um curioso bloqueado não trava o dono junto.
+
 ## 1.1.2 — 19/11/2026
 
 - Corrigido: o botão Excluir (e o Revogar) da aba Sistemas ligados não respondia ao clique. Causa: no script que montou a 1.0.5, `$` dentro da string de substituição do `String.replace` vira ` (padrão especial do JavaScript), e as duas ligações de evento saíram com `$(` em vez de `$(` — o console acusava "$(...).forEach is not a function".

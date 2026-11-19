@@ -56,3 +56,19 @@ volta automática. O conector nunca executa nada como root.
 Na primeira vez (instalações feitas antes desta versão), rode uma vez na VPS, como root:
 `bash /opt/dmk-whatsapp/instalar/atualizar.sh` — isso instala o gatilho; das próximas vezes o botão
 resolve sozinho. O painel avisa quando a versão nova responder e pede só um recarregar da página.
+
+## Painel pelo domínio (sem túnel SSH)
+
+Por padrão o painel só existe em 127.0.0.1 (túnel SSH). Para acessá-lo direto pelo navegador,
+publique-o junto com o domínio:
+
+```bash
+sudo bash /opt/dmk-whatsapp/instalar/publicar-nginx.sh zap.seudominio.com.br voce@email.com --painel
+```
+
+Isso expõe `/painel/`, `/admin/v1/` e `/health` em HTTPS. Toda rota de administração continua
+exigindo a chave de administrador (64 hexadecimais — impossível de adivinhar), com trava de
+tentativas por IP; o painel em si é só a tela de entrada. O script confere na prática: se a
+administração abrir sem chave, ele desfaz a publicação sozinho.
+
+Para tirar o painel do ar e voltar ao modo túnel, rode o mesmo comando **sem** `--painel`.
