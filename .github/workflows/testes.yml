@@ -10,7 +10,8 @@ jobs:
           node-version-file: NODE_VERSION
       - run: for f in instalar/*.sh ferramentas/dmk-wa; do bash -n "$f"; done
       # Os testes usam o motor simulado e uma biblioteca falsa no lugar do Baileys: não precisam de rede.
-      - run: node --test tests/*.test.js
+      # Como root, igual à VPS: publicar-nginx.sh recusa rodar sem root (os testes dele ficavam vermelhos desde a 1.1.0).
+      - run: sudo -E env "PATH=$PATH" node --test tests/*.test.js
   # Instala as dependências de verdade (as mesmas versões da VPS) e confere a biblioteca do WhatsApp:
   # as funções que o motor usa existem e uma conexão de teste recebe QR (nada é pareado).
   baileys:
