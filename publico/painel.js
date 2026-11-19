@@ -82,7 +82,8 @@
   async function carregar() {
     const { sessoes: lista } = await api('GET', '/sessoes');
     sessoes = lista.slice().sort((a, b) => a.id - b.id); render();
-    const aberto = $('.modal[data-id]'); if (aberto) atualizarFichaAberta(Number(aberto.dataset.id));
+    const aberto = $('.modal[data-id]');
+    if (aberto) { const id = Number(aberto.dataset.id); atualizarFichaAberta(id); atualizarQrSeNecessario(id); }
   }
   function iniciar() {
     fetch('/health').then((r) => r.json()).then((j) => { $('#versao').textContent = 'v' + j.versao + (j.simulado ? ' · SIMULADO' : ''); }).catch(() => {});
@@ -153,6 +154,14 @@
     }));
     desenharGeral(m, s);
     atualizarFichaAberta(id);
+    atualizarQrSeNecessario(id);
+  }
+  // A lista (GET /sessoes, usada no polling) não traz o QR; só o detalhe de uma sessão (GET /sessoes/:id) traz.
+  // Por isso, com a ficha aberta e aguardando QR, busca o detalhe à parte em vez de confiar só na lista.
+  async function atualizarQrSeNecessario(id) {
+    const s = sessoes.find((x) => x.id === id);
+    if (!s || s.status !== 'AGUARDANDO_QR') return;
+    try { Object.assign(s, await api('GET', `/sessoes/${id}`)); atualizarFichaAberta(id); } catch {}
   }
   function desenharGeral(m, s) {
     const painel = $('[data-painel=geral]', m);
@@ -185,10 +194,10 @@
     if (alvoQr) alvoQr.innerHTML = s.status === 'AGUARDANDO_QR' && s.qr ? `<div class="qr"><img src="${s.qr}" alt="QR Code do WhatsApp" width="240" height="240"><p>No celular: WhatsApp → Aparelhos conectados → Conectar um aparelho, e aponte para este código. Ele é renovado sozinho enquanto não for lido.</p></div>` : '';
   }
   async function acaoFicha(m, id, acao, bt) {
-    if (acao === 'conectar' || acao === 'reiniciar') { await chamar('POST', `/sessoes/${id}/${acao}`, null, bt); return carregar(); }
+    if (acao === 'conectar' || acao === 'reiniciar') { await chamar('POST', `/sessoes/${id}/${acao}`, null, bt); await carregar(); return atualizarQrSeNecessario(id); }
     if (acao === 'pausar') { await chamar('POST', `/sessoes/${id}/pausar`, null, bt); return carregar(); }
     if (acao === 'autorizar') return abrirAutorizar(id);
-    if (acao === 'trocar-numero') return confirmarPerigo('Trocar o número', 'O número atual é desconectado agora mesmo e um novo QR é mostrado. Os sistemas ligados a esta sessão passam a falar pelo número novo.', async (bt2) => { await chamar('POST', `/sessoes/${id}/novo-qr`, { confirmado: true }, bt2); m.querySelector('.aba').click(); return carregar(); });
+    if (acao === 'trocar-numero') return confirmarPerigo('Trocar o número', 'O número atual é desconectado agora mesmo e um novo QR é mostrado. Os sistemas ligados a esta sessão passam a falar pelo número novo.', async (bt2) => { await chamar('POST', `/sessoes/${id}/novo-qr`, { confirmado: true }, bt2); m.querySelector('.aba').click(); await carregar(); return atualizarQrSeNecessario(id); });
     if (acao === 'excluir') return confirmarPerigo('Excluir sessão', 'O número é desconectado e as autorizações desta sessão deixam de valer. O que os sistemas já gravaram do lado deles continua lá.', async (bt2) => { await chamar('POST', `/sessoes/${id}/excluir`, { confirmado: true }, bt2); m.remove(); fundo.hidden = true; return carregar(); });
   }
   function confirmarPerigo(titulo, texto, onConfirmar) {

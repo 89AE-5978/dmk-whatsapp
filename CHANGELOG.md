@@ -1,5 +1,9 @@
 # Histórico
 
+## 1.0.3 — 19/11/2026
+
+- Corrigido: a ficha da sessão nunca mostrava o QR Code. A lista usada pela tela (`GET /sessoes`, para o painel todo) não traz o QR por design — só o detalhe de uma sessão (`GET /sessoes/:id`) traz — mas a ficha usava só os dados da lista. Agora, com a ficha aberta e a sessão "Aguardando QR", o painel busca o detalhe à parte (ao abrir a ficha, a cada atualização automática e logo após Conectar/Reiniciar/Trocar número).
+
 ## 1.0.2 — 19/11/2026
 
 - Corrigido: a tela de login do painel nunca sumia depois de entrar com a chave certa (o login funcionava de verdade — dava para ver nas chamadas repetidas com sucesso — mas a tela ficava por cima). Causa: as classes `.entrada` e `.tela` definem `display: grid`, e isso faz o navegador ignorar o atributo `hidden` (CSS do autor sempre vence o padrão do navegador, não importa a especificidade). Adicionada a regra `[hidden] { display: none !important; }`.
