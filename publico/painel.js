@@ -62,12 +62,12 @@
   // atualizar.sh de sempre (backup e volta automática). Aqui só acompanhamos pelo /health.
   $('#btAtualizacao').addEventListener('click', () => {
     const m = abrirModal({ titulo: 'Atualização do conector', estreito: true, corpo: `
-      <div class="dados" style="margin-bottom:.75rem">
+      <div class="dados">
         <div class="dado"><span>Instalada</span><b data-at-atual>…</b></div>
         <div class="dado"><span>Publicada</span><b data-at-nova>consultando…</b></div>
       </div>
       <p class="aviso" data-at-aviso hidden></p>
-      <p style="color:var(--fraco);font-size:.75rem;margin-top:.625rem">A atualização guarda backup e, se algo não voltar, o conector repõe a versão anterior sozinho. As sessões reconectam com a credencial salva.</p>`,
+      <p class="nota">A atualização guarda backup e, se algo não voltar, o conector repõe a versão anterior sozinho. As sessões reconectam com a credencial salva.</p>`,
       rodape: [
         { texto: 'Buscar de novo', onClick: (mm, bt) => consultarAtualizacao(mm, bt) },
         { texto: 'Atualizar agora', principal: true, onClick: (mm, bt) => pedirAtualizacao(mm, bt) },
@@ -163,7 +163,7 @@
     const atual = new Set(filtroEstados);
     abrirModal({ titulo: 'Filtros', estreito: true, corpo: `<div class="campos">
       <div class="campo"><label>Estado</label>${Object.entries(ESTADOS).map(([valor, [rotulo]]) =>
-        `<label style="display:flex;align-items:center;gap:.5rem;font-weight:400;padding:.25rem 0">
+        `<label class="linha-marcar">
           <input type="checkbox" value="${valor}" ${atual.has(valor) ? 'checked' : ''}> ${rotulo}</label>`).join('')}</div>
     </div>`, rodape: [
       { texto: 'Limpar', onClick: (m) => { filtroEstados = new Set(); render(); m.remove(); fundo.hidden = true; } },
@@ -240,7 +240,7 @@
       </div>
       ${s.erro ? `<p class="aviso perigo">${esc(s.erro)}</p>` : ''}
       <div data-qr></div>
-      <div class="grupo-bt" style="margin-top:1rem;flex-wrap:wrap">
+      <div class="grupo-bt grupo-rodape">
         ${s.ativa && s.status !== 'CONECTADO' ? '' : s.ativa
           ? '<button class="bt" data-acao-ficha="pausar"><svg><use href="#i-pausa"/></svg><span>Pausar</span></button>'
           : '<button class="bt bt-principal" data-acao-ficha="conectar"><svg><use href="#i-play"/></svg><span>Conectar</span></button>'}
@@ -299,7 +299,7 @@
   // ---------- autorizar sistema ----------
   function abrirAutorizar(id) {
     const m = abrirModal({ titulo: 'Ligar sistema', estreito: true, corpo: `<p class="aviso">O sistema autorizado poderá ler e responder todas as conversas deste número.</p>
-      <div class="campos" style="margin-top:.75rem">
+      <div class="campos campos-espaco">
         <div class="campo"><label for="autNome">Nome (aparece na lista de sistemas ligados)</label><input id="autNome" maxlength="100" placeholder='Ex.: "Site da gestão"'></div>
         <div class="campo"><label for="autSistema">Sistema</label><input id="autSistema" maxlength="150" placeholder="Ex.: gestao"></div>
       </div>`, rodape: [{ texto: 'Gerar código', principal: true, onClick: async (mm, bt) => {
@@ -321,16 +321,17 @@
   async function carregarAutorizacoes(m, id) {
     const alvo = $('[data-painel=sistemas]', m); alvo.innerHTML = 'Carregando…';
     const { autorizacoes } = await api('GET', `/sessoes/${id}/autorizacoes`);
-    alvo.innerHTML = autorizacoes.length ? `<table class="dmk-lista" style="border:1px solid var(--borda);border-radius:.5rem">
+    alvo.classList.add('quadro');
+    alvo.innerHTML = autorizacoes.length ? `<table class="dmk-lista">
       <thead><tr><th>Sistema</th><th>Nome</th><th>Estado</th><th class="num">Fila</th><th></th></tr></thead>
       <tbody>${autorizacoes.map((a) => `<tr>
         <td>${esc(a.installation)}</td><td>${esc(a.label)}</td>
         <td>${a.revoked_at ? '<span class="selo off">Revogada</span>' : a.paired ? '<span class="selo on">Ligada</span>' : '<span class="selo qr">Aguardando</span>'}</td>
         <td class="num">${a.pending}</td>
         <td><div class="grupo-bt">${a.revoked_at ? '' : `<button class="bt bt-mini bt-perigo" data-revogar="${a.id}"><svg><use href="#i-fechar"/></svg><span>Revogar</span></button>`}<button class="bt bt-mini" data-excluir-aut="${a.id}" title="Excluir do histórico desta sessão"><svg><use href="#i-lixo"/></svg><span>Excluir</span></button></div></td>
-      </tr>`).join('')}</tbody></table>` : '<p class="vazio" style="display:block">Nenhum sistema ligado a esta sessão.</p>';
-    $('[data-revogar]', alvo).forEach((bt) => bt.addEventListener('click', () => confirmarPerigo('Revogar acesso', 'O sistema para de ler e enviar por esta sessão na próxima consulta.', async (bt2) => { await chamar('POST', `/sessoes/${id}/autorizacoes/${bt.dataset.revogar}/revogar`, null, bt2); carregarAutorizacoes(m, id); carregar(); })));
-    $('[data-excluir-aut]', alvo).forEach((bt) => bt.addEventListener('click', () => confirmarPerigo('Excluir do histórico', 'A autorização sai da lista desta sessão. Se ainda estiver ativa, o acesso do sistema é cortado agora. O que o sistema já gravou do lado dele continua lá.', async (bt2) => { await chamar('POST', `/sessoes/${id}/autorizacoes/${bt.dataset.excluirAut}/excluir`, null, bt2); carregarAutorizacoes(m, id); carregar(); })));
+      </tr>`).join('')}</tbody></table>` : '<p class="vazio">Nenhum sistema ligado a esta sessão.</p>';
+    $$('[data-revogar]', alvo).forEach((bt) => bt.addEventListener('click', () => confirmarPerigo('Revogar acesso', 'O sistema para de ler e enviar por esta sessão na próxima consulta.', async (bt2) => { await chamar('POST', `/sessoes/${id}/autorizacoes/${bt.dataset.revogar}/revogar`, null, bt2); carregarAutorizacoes(m, id); carregar(); })));
+    $$('[data-excluir-aut]', alvo).forEach((bt) => bt.addEventListener('click', () => confirmarPerigo('Excluir do histórico', 'A autorização sai da lista desta sessão. Se ainda estiver ativa, o acesso do sistema é cortado agora. O que o sistema já gravou do lado dele continua lá.', async (bt2) => { await chamar('POST', `/sessoes/${id}/autorizacoes/${bt.dataset.excluirAut}/excluir`, null, bt2); carregarAutorizacoes(m, id); carregar(); })));
   }
 
   // ---------- início ----------

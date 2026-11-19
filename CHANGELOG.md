@@ -1,5 +1,12 @@
 # Histórico
 
+## 1.1.2 — 19/11/2026
+
+- Corrigido: o botão Excluir (e o Revogar) da aba Sistemas ligados não respondia ao clique. Causa: no script que montou a 1.0.5, `$` dentro da string de substituição do `String.replace` vira ` (padrão especial do JavaScript), e as duas ligações de evento saíram com `$(` em vez de `$(` — o console acusava "$(...).forEach is not a function".
+- Corrigido: a CSP do conector (style-src 'self') bloqueava os `style=` inline do painel (avisos no console e espaçamentos perdidos). Todos os estilos inline — inclusive os antigos — viraram classes no painel.css (.nota, .linha-marcar, .grupo-rodape, .campos-espaco, .quadro).
+- A tabela de Sistemas ligados ganhou moldura própria (.quadro) e rola na horizontal quando aperta, sem cortar o texto dos selos.
+- `package.json` acertado para acompanhar o arquivo VERSION (tinha ficado em 1.0.5 nas versões 1.1.x).
+
 ## 1.1.1 — 19/11/2026
 
 - `publicar-nginx.sh`: numa máquina com mais de uma conta Let's Encrypt registrada, o certbot parava para perguntar qual usar e travava a publicação (aconteceu na VPS). Agora o script escolhe sozinho a mesma conta que os certificados já existentes usam — assim o domínio novo renova junto com os outros. Se os certificados atuais não apontarem uma conta só, ele para, lista as contas e ensina a escolher com `--conta <id>`.

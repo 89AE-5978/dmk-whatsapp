@@ -184,6 +184,15 @@ input[type=search]::-webkit-search-cancel-button { display: none; }
          max-width: calc(100vw - 2rem); background: linear-gradient(180deg, #c22a1e, var(--vermelho)); color: var(--branco);
          padding: .7rem 1rem; border-radius: var(--raio-cartao); box-shadow: var(--sombra); font-size: .8125rem; }
 
+/* ---------- classes utilitárias (a CSP do conector bloqueia style= inline; tudo vira classe) ---------- */
+.nota { color: var(--fraco); font-size: .75rem; margin-top: .625rem; }
+.linha-marcar { display: flex; align-items: center; gap: .5rem; font-weight: 400; padding: .25rem 0; }
+.grupo-rodape { margin-top: 1rem; }
+.campos-espaco { margin-top: .75rem; }
+/* Moldura das tabelas dentro da ficha: uma linha por registro, sem quebrar; rola na horizontal se apertar. */
+.quadro { border: 1px solid var(--borda); border-radius: var(--raio); overflow-x: auto; }
+.quadro .dmk-lista td { overflow: visible; }
+
 /* ---------- efeitos (desligados automaticamente em prefers-reduced-motion) ---------- */
 @keyframes aparecerModal { from { opacity: 0; transform: translate(-50%, -50%) scale(.965); } }
 .modal { animation: aparecerModal .18s ease-out; }
