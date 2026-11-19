@@ -11,13 +11,19 @@ const { spawnSync } = require('node:child_process');
 const RAIZ = path.join(__dirname, '..');
 const DOMINIO = 'zap.exemplo.test';
 
-function caixa({ codigos = {}, siteExistente = null } = {}) {
+function caixa({ codigos = {}, siteExistente = null, contas = {} } = {}) {
   const base = fs.mkdtempSync(path.join(os.tmpdir(), 'publicar-'));
   const nginx = path.join(base, 'etc/nginx');
   const bin = path.join(base, 'bin');
   fs.mkdirSync(path.join(nginx, 'sites-available'), { recursive: true });
   fs.mkdirSync(path.join(nginx, 'sites-enabled'), { recursive: true });
   fs.mkdirSync(bin, { recursive: true });
+  const letsencrypt = path.join(base, 'etc/letsencrypt');
+  fs.mkdirSync(path.join(letsencrypt, 'renewal'), { recursive: true });
+  for (const [conta, dominios] of Object.entries(contas)) {
+    fs.mkdirSync(path.join(letsencrypt, 'accounts/acme-v02/directory', conta), { recursive: true });
+    for (const d of dominios) fs.writeFileSync(path.join(letsencrypt, 'renewal', `${d}.conf`), `account = ${conta}\n`);
+  }
   if (siteExistente) fs.writeFileSync(path.join(nginx, 'sites-available/outro'), siteExistente);
 
   const registro = path.join(base, 'registro.log');
@@ -38,7 +44,7 @@ exit 0
   fs.writeFileSync(path.join(bin, 'systemctl'), `#!/usr/bin/env bash\necho "systemctl $*" >> ${registro}\nexit 0\n`);
   fs.writeFileSync(path.join(bin, 'certbot'), `#!/usr/bin/env bash\necho "certbot $*" >> ${registro}\nexit 0\n`);
   for (const nome of ['curl', 'nginx', 'systemctl', 'certbot']) fs.chmodSync(path.join(bin, nome), 0o755);
-  return { base, nginx, bin, registro };
+  return { base, nginx, bin, registro, letsencrypt };
 }
 
 function rodar(c, args = [DOMINIO, 'dono@exemplo.test'], extra = {}) {
@@ -47,7 +53,7 @@ function rodar(c, args = [DOMINIO, 'dono@exemplo.test'], extra = {}) {
     env: {
       ...process.env, PATH: `${c.bin}:${process.env.PATH}`,
       DMK_WA_NGINX_DIR: c.nginx, DMK_WA_NGINX: 'nginx', DMK_WA_SYSTEMCTL: 'systemctl', DMK_WA_CERTBOT: 'certbot',
-      DMK_WA_SEM_CERTBOT: '1', ...extra,
+      DMK_WA_SEM_CERTBOT: '1', DMK_WA_LETSENCRYPT_DIR: c.letsencrypt, ...extra,
     },
   });
 }
@@ -122,5 +128,44 @@ test('para se o conector nao estiver no ar', () => {
   const r = rodar(c, [DOMINIO, 'dono@exemplo.test'], { DMK_WA_SEM_REDE: '' });
   assert.notStrictEqual(r.status, 0, 'devia ter parado');
   assert.ok(!fs.existsSync(path.join(c.nginx, `sites-available/dmk-wa-${DOMINIO}`)));
+  fs.rmSync(c.base, { recursive: true, force: true });
+});
+
+// ---- escolha da conta Let's Encrypt ----
+// Numa VPS com mais de uma conta registrada, o certbot para e pergunta qual usar. Sem terminal,
+// isso trava a publicação. O script resolve sozinho quando os certificados atuais concordam.
+
+test('usa a mesma conta dos certificados que ja existem na maquina', () => {
+  const c = caixa({ codigos: CERTO, contas: { bba2cafe: ['iot.exemplo.test', 'sistema.exemplo.test'] } });
+  const r = rodar(c, [DOMINIO, 'dono@exemplo.test'], { DMK_WA_SEM_CERTBOT: '' });
+  assert.strictEqual(r.status, 0, r.stdout + r.stderr);
+  const log = fs.readFileSync(c.registro, 'utf8');
+  assert.match(log, /--account bba2cafe/, 'devia ter passado a conta em uso para o certbot');
+  fs.rmSync(c.base, { recursive: true, force: true });
+});
+
+test('para e explica quando ha mais de uma conta e os certificados discordam', () => {
+  const c = caixa({
+    codigos: CERTO,
+    contas: { bba2cafe: ['iot.exemplo.test'], ce82beef: ['sistema.exemplo.test'] },
+  });
+  const r = rodar(c, [DOMINIO, 'dono@exemplo.test'], { DMK_WA_SEM_CERTBOT: '' });
+  assert.notStrictEqual(r.status, 0, 'devia ter parado em vez de escolher sozinho');
+  assert.match(r.stdout, /mais de uma conta/);
+  assert.match(r.stdout, /bba2/);
+  assert.match(r.stdout, /ce82/);
+  assert.match(r.stdout, /--conta/, 'devia ensinar como escolher');
+  assert.ok(!fs.existsSync(path.join(c.nginx, `sites-available/dmk-wa-${DOMINIO}`)), 'devia ter desfeito');
+  fs.rmSync(c.base, { recursive: true, force: true });
+});
+
+test('aceita a conta informada na linha de comando', () => {
+  const c = caixa({
+    codigos: CERTO,
+    contas: { bba2cafe: ['iot.exemplo.test'], ce82beef: ['sistema.exemplo.test'] },
+  });
+  const r = rodar(c, [DOMINIO, 'dono@exemplo.test', '--conta', 'ce82beef'], { DMK_WA_SEM_CERTBOT: '' });
+  assert.strictEqual(r.status, 0, r.stdout + r.stderr);
+  assert.match(fs.readFileSync(c.registro, 'utf8'), /--account ce82beef/);
   fs.rmSync(c.base, { recursive: true, force: true });
 });

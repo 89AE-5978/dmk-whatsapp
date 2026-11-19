@@ -17,7 +17,15 @@ RAIZ="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # shellcheck source=instalar/comum.sh
 source "$RAIZ/instalar/comum.sh"
 
-DOMINIO="${1:-}"; EMAIL="${2:-}"
+DOMINIO=""; EMAIL=""; CONTA=""
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --conta) CONTA="${2:-}"; shift 2 || true;;
+    -*) parar_com "Opção desconhecida: $1";;
+    *) if [[ -z "$DOMINIO" ]]; then DOMINIO="$1"; elif [[ -z "$EMAIL" ]]; then EMAIL="$1"; fi; shift;;
+  esac
+done
+LE_DIR="${DMK_WA_LETSENCRYPT_DIR:-/etc/letsencrypt}"
 NGINX_DIR="${DMK_WA_NGINX_DIR:-/etc/nginx}"
 NGINX="${DMK_WA_NGINX:-nginx}"
 CERTBOT="${DMK_WA_CERTBOT:-certbot}"
@@ -93,8 +101,26 @@ if [[ "${DMK_WA_SEM_CERTBOT:-}" == "1" ]]; then
   dizer '(teste) certificado pulado.'
 else
   command -v "$CERTBOT" >/dev/null || parar_com "O certbot não está instalado. Instale com: apt-get install -y certbot python3-certbot-nginx"
+  # Com mais de uma conta Let's Encrypt registrada, o certbot para e pergunta qual usar - e aí
+  # ele trava sem terminal. Escolhemos a mesma conta que os certificados já existentes usam,
+  # para o domínio novo renovar junto com os outros.
+  CONTA="${CONTA:-}"
+  if [[ -z "$CONTA" ]]; then
+    mapfile -t CONTAS_EM_USO < <(grep -hoP '^\s*account\s*=\s*\K\w+' "$LE_DIR"/renewal/*.conf 2>/dev/null | sort -u)
+    mapfile -t CONTAS_EXISTENTES < <(find "$LE_DIR/accounts" -mindepth 3 -maxdepth 3 -type d -printf '%f\n' 2>/dev/null | sort -u)
+    if [[ ${#CONTAS_EM_USO[@]} -eq 1 ]]; then
+      CONTA="${CONTAS_EM_USO[0]}"
+      dizer "Usando a mesma conta Let's Encrypt dos outros certificados desta máquina (${CONTA:0:4})."
+    elif [[ ${#CONTAS_EXISTENTES[@]} -gt 1 ]]; then
+      dizer 'Esta máquina tem mais de uma conta Let'"'"'s Encrypt e os certificados atuais não apontam uma só:'
+      for c in "${CONTAS_EXISTENTES[@]}"; do dizer "  ${c:0:4}  ($c)"; done
+      dizer "Escolha uma e rode de novo acrescentando: --conta <id completo>"
+      false
+    fi
+  fi
   dizer "Pedindo o certificado para $DOMINIO..."
-  "$CERTBOT" --nginx -d "$DOMINIO" --non-interactive --agree-tos -m "$EMAIL" --redirect
+  "$CERTBOT" --nginx -d "$DOMINIO" --non-interactive --agree-tos -m "$EMAIL" --redirect \
+    ${CONTA:+--account "$CONTA"}
   "$NGINX" -t >/dev/null
   "$SYSTEMCTL" reload nginx
 fi

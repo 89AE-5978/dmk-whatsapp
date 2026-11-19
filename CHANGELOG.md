@@ -1,5 +1,9 @@
 # Histórico
 
+## 1.1.1 — 19/11/2026
+
+- `publicar-nginx.sh`: numa máquina com mais de uma conta Let's Encrypt registrada, o certbot parava para perguntar qual usar e travava a publicação (aconteceu na VPS). Agora o script escolhe sozinho a mesma conta que os certificados já existentes usam — assim o domínio novo renova junto com os outros. Se os certificados atuais não apontarem uma conta só, ele para, lista as contas e ensina a escolher com `--conta <id>`.
+
 ## 1.1.0 — 19/11/2026
 
 - `instalar/publicar-nginx.sh`: publica o conector num domínio HTTPS, expondo **somente** `/api/public/dmk-connector/v1/`. Administração, painel e saúde continuam só em 127.0.0.1. O script confere na prática o que ficou exposto e desfaz a publicação se a administração aparecer de fora; recusa domínio que já pertença a outro site e não toca em nenhum outro site da máquina.
