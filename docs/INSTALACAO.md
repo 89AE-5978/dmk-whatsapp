@@ -62,6 +62,9 @@ responder ou alguma sessão não voltar, ele repõe a versão anterior sozinho.
 Na volta automática a pasta `dados` não é reposta: as credenciais do WhatsApp mudam com a sessão ligada,
 e uma cópia antiga poderia derrubá-la. O backup serve para recuperação manual.
 
+Também dá para atualizar **pelo painel** (botão no topo): veja docs/PAINEL.md. Na primeira vez rode o
+comando acima uma vez para instalar o gatilho; depois disso o botão resolve sozinho.
+
 Atualização automática diária (vem desligada):
 
 ```bash

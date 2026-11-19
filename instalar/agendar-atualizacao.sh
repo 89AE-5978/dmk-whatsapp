@@ -19,7 +19,7 @@ case "${1:-}" in
     dizer "Atualização automática LIGADA (todo dia, perto das 04:10). Para ver o último resultado: journalctl -u dmk-wa-atualizar -n 30 --no-pager" ;;
   desligar)
     "$SYSTEMCTL" disable --now --quiet dmk-wa-atualizar.timer 2>/dev/null || true
-    rm -f /etc/systemd/system/dmk-wa-atualizar.service /etc/systemd/system/dmk-wa-atualizar.timer; "$SYSTEMCTL" daemon-reload
-    dizer "Atualização automática DESLIGADA. Para atualizar à mão: bash $RAIZ/instalar/atualizar.sh" ;;
+    rm -f /etc/systemd/system/dmk-wa-atualizar.timer; "$SYSTEMCTL" daemon-reload   # a unidade de serviço fica: o botão Atualizar do painel usa a mesma
+    dizer "Atualização automática DESLIGADA (o botão Atualizar do painel continua funcionando). Para atualizar à mão: bash $RAIZ/instalar/atualizar.sh" ;;
   *) parar_com "Use: agendar-atualizacao.sh ligar|desligar" ;;
 esac

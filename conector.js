@@ -14,9 +14,10 @@ const BASE = '/api/public/dmk-connector/v1', ADMIN = '/admin/v1', LIMITE_CORPO =
 const fail = (m, status = 400) => Object.assign(Error(m), { status });
 const hash = (v) => crypto.createHash('sha256').update(String(v)).digest();
 
-function criarServidor({ dataDir, chaveAdmin, fabricaMotor, simulado = false, log = console }) {
+function criarServidor({ dataDir, chaveAdmin, fabricaMotor, simulado = false, log = console, opcoesAtualizacao }) {
   if (!/^[a-f0-9]{64}$/.test(chaveAdmin || '')) throw Error('Chave de administrador ausente ou inválida (64 caracteres hexadecimais). Rode instalar/instalar.sh.');
   const sessoes = criarSessoes({ dataDir, fabricaMotor, log });
+  const atualizacao = require('./lib/atualizacao')({ dataDir, versao: VERSAO, raiz: __dirname, ...(opcoesAtualizacao || {}) });
   const chave = hash(chaveAdmin), tentativas = new Map();
   function exigirAdmin(req) {
     const ip = req.socket.remoteAddress, t = tentativas.get(ip);
@@ -38,6 +39,8 @@ function criarServidor({ dataDir, chaveAdmin, fabricaMotor, simulado = false, lo
   async function admin(req, p, json) {
     exigirAdmin(req);
     const b = req.method === 'POST' ? objeto(await corpo(req)) : {}, m = /^\/sessoes\/(\d+)(?:\/([a-z-]+)(?:\/([a-f0-9-]{36})\/([a-z]+))?)?$/.exec(p);
+    if (p === '/atualizacao' && req.method === 'GET') return json(await atualizacao.estado());
+    if (p === '/atualizacao' && req.method === 'POST') return json(await atualizacao.pedir(), 202);
     if (p === '/sessoes' && req.method === 'GET') return json({ sessoes: sessoes.listar() });
     if (p === '/sessoes' && req.method === 'POST') return json(sessoes.criar(b), 201);
     if (!m) throw fail('Rota não encontrada.', 404);

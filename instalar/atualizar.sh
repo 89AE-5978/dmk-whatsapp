@@ -25,6 +25,9 @@ cd "$RAIZ"
 [[ -d .git ]] || parar_com "$RAIZ não é um clone do repositório; o atualizador precisa do Git."
 exec 9> "$RAIZ/.atualizando.lock"
 flock -n 9 || parar_com "Já existe uma atualização em andamento."  # os comandos que reiniciam o serviço fecham o descritor 9 para não herdar a trava
+# Botão Atualizar do painel: garante o gatilho (unidades systemd). Criado aqui para chegar junto com a
+# atualização nas instalações existentes; no --verificar nada é alterado.
+[[ "$(id -u)" == "0" && -z "$MODO" ]] && garantir_gatilho_atualizacao "$RAIZ"
 git fetch --quiet origin "$RAMO" || parar_com "Não foi possível consultar o GitHub. Nada foi alterado."
 ANTES="$(git rev-parse HEAD)"; NOVA_REV="$(git rev-parse "origin/$RAMO")"
 ATUAL="$(tr -d ' \n' < VERSION)"; NOVA="$(git show "origin/$RAMO:VERSION" | tr -d ' \n')"

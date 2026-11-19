@@ -59,3 +59,16 @@ esperar_saude() {
 sessoes_conectadas() {
   curl -fsS -m 3 "http://127.0.0.1:$PORTA/health" 2>/dev/null | sed -n 's/.*"conectadas":\([0-9]*\).*/\1/p' | grep . || echo 0
 }
+
+# Gatilho do botão Atualizar do painel: o conector (usuário dmkwa, sem root) grava
+# dados/atualizar.pedido; esta unidade .path (root) percebe o arquivo e roda instalar/atualizar.sh,
+# o mesmo de sempre, com backup e volta automática. O pedido é removido aqui no começo para o
+# gatilho não disparar de novo quando a atualização terminar.
+garantir_gatilho_atualizacao() {
+  local raiz="$1"
+  rm -f "$raiz/dados/atualizar.pedido"
+  printf '[Unit]\nDescription=DMK WhatsApp - atualizacao (botao do painel e agendamento)\n\n[Service]\nType=oneshot\nExecStart=/usr/bin/env bash %s/instalar/atualizar.sh\n' "$raiz" > /etc/systemd/system/dmk-wa-atualizar.service
+  printf '[Unit]\nDescription=DMK WhatsApp - pedido de atualizacao do painel\n\n[Path]\nPathExists=%s/dados/atualizar.pedido\nUnit=dmk-wa-atualizar.service\n\n[Install]\nWantedBy=multi-user.target\n' "$raiz" > /etc/systemd/system/dmk-wa-atualizar.path
+  "$SYSTEMCTL" daemon-reload
+  "$SYSTEMCTL" enable --now --quiet dmk-wa-atualizar.path 2>/dev/null || true
+}

@@ -1,5 +1,11 @@
 # Histórico
 
+## 1.0.4 — 19/11/2026
+
+- Painel com visual novo, profissional, na identidade DMK (azul tecnológico, azul-escuro, preto e branco): marca da DMK no topo e na tela de entrada, topo em gradiente com filete de acento, KPIs com ícone em chip e número em destaque, lista com cabeçalho em micro-maiúsculas e realce lateral no hover, selos de estado com anel colorido, QR emoldurado em cartão azul-escuro (destaque para a leitura), código de autorização com caixa tracejada, foco visível nos controles e rolagem fina na lista. Só aparência: classes, ids e comportamento do painel são os mesmos.
+- Atualização pelo painel: botão no topo mostra a versão instalada e a publicada e atualiza com um clique. O conector (usuário dmkwa, sem root) grava `dados/atualizar.pedido`; uma unidade systemd `.path` (root), criada pelo `instalar/atualizar.sh` e pelo `instalar/instalar.sh`, percebe o pedido e roda o atualizador de sempre, com backup e volta automática. `agendar-atualizacao.sh desligar` deixou de apagar a unidade de serviço (o botão usa a mesma). Rotas novas: `GET/POST /admin/v1/atualizacao`.
+- Alinhado o `package.json` à versão do arquivo `VERSION` (ficava em 1.0.0 desde a primeira publicação; o guia de publicação pede os dois).
+
 ## 1.0.3 — 19/11/2026
 
 - Corrigido: a ficha da sessão nunca mostrava o QR Code. A lista usada pela tela (`GET /sessoes`, para o painel todo) não traz o QR por design — só o detalhe de uma sessão (`GET /sessoes/:id`) traz — mas a ficha usava só os dados da lista. Agora, com a ficha aberta e a sessão "Aguardando QR", o painel busca o detalhe à parte (ao abrir a ficha, a cada atualização automática e logo após Conectar/Reiniciar/Trocar número).

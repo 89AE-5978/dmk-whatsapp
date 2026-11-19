@@ -54,6 +54,7 @@ ReadWritePaths=$RAIZ/dados
 [Install]
 WantedBy=multi-user.target
 UNIT
+garantir_gatilho_atualizacao "$RAIZ"
 ln -sfn "$RAIZ/ferramentas/dmk-wa" /usr/local/bin/dmk-wa
 chmod +x "$RAIZ/ferramentas/dmk-wa" "$RAIZ/instalar/"*.sh
 printf '{\n  "sistema": "dmk-whatsapp",\n  "pasta": "%s",\n  "porta": %s,\n  "usuario": "dmkwa",\n  "fora_da_pasta": ["/etc/systemd/system/%s.service", "/usr/local/bin/dmk-wa"]\n}\n' "$RAIZ" "$PORTA" "$SERVICO" > "$RAIZ/instalacao.json"

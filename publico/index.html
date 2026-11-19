@@ -10,6 +10,7 @@
 <body>
 <!-- Ícones: um desenho só, usado em todo o painel. Nada vem de fora. -->
 <svg hidden aria-hidden="true"><defs>
+<symbol id="i-marca" viewBox="0 0 24 24"><path d="M12 3 20 9.5 16.5 20h-9L4 9.5z"/><path d="M12 3v17M4 9.5h16"/></symbol>
 <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M5 12.5a10 10 0 0 1 14 0M8 16a6 6 0 0 1 8 0"/><circle cx="12" cy="19.5" r="1.3" fill="currentColor" stroke="none"/></symbol>
 <symbol id="i-fone" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></symbol>
 <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5 19 12 7 19.5z"/></symbol>
@@ -22,6 +23,7 @@
 <symbol id="i-filtro" viewBox="0 0 24 24"><path d="M4 6h16l-6 7v5l-4 2v-7z"/></symbol>
 <symbol id="i-fechar" viewBox="0 0 24 24"><path d="m6 6 12 12M18 6 6 18"/></symbol>
 <symbol id="i-copiar" viewBox="0 0 24 24"><rect x="9" y="9" width="11" height="11" rx="2"/><path d="M15 6V5a1 1 0 0 0-1-1H5a1 1 0 0 0-1 1v9a1 1 0 0 0 1 1h1"/></symbol>
+<symbol id="i-baixar" viewBox="0 0 24 24"><path d="M12 4v10M8 10.5l4 4 4-4M5 19.5h14"/></symbol>
 <symbol id="i-sair" viewBox="0 0 24 24"><path d="M15 5H6a1 1 0 0 0-1 1v12a1 1 0 0 0 1 1h9M12 12h9M18 9l3 3-3 3"/></symbol>
 <symbol id="i-fila" viewBox="0 0 24 24"><path d="M4 7h16M4 12h16M4 17h10"/></symbol>
 <symbol id="i-alerta" viewBox="0 0 24 24"><path d="M12 4 2.5 20h19z"/><path d="M12 10v4.5"/><circle cx="12" cy="17.3" r="1" fill="currentColor" stroke="none"/></symbol>
@@ -30,6 +32,7 @@
 <!-- Entrada: a chave de administrador fica só nesta aba do navegador. -->
 <section id="entrada" class="entrada">
   <form class="cartao-entrada" id="formEntrada" autocomplete="off">
+    <div class="logo"><svg><use href="#i-marca"/></svg></div>
     <h1>DMK WhatsApp</h1>
     <p class="sub">Conector global de WhatsApp — painel de administração</p>
     <label for="chave">Chave de administrador</label>
@@ -42,9 +45,10 @@
 <!-- Tela fixa: só a lista rola. -->
 <main id="tela" class="tela" hidden>
   <header class="topo">
-    <div class="marca"><span class="ponto" id="pontoServico"></span><strong>DMK WhatsApp</strong><span class="versao" id="versao"></span></div>
+    <div class="marca"><div class="logo"><svg><use href="#i-marca"/></svg></div><div><strong>DMK WhatsApp</strong><small>Conector global · painel de administração</small></div><span class="ponto" id="pontoServico"></span><span class="versao" id="versao"></span></div>
     <div class="grupo-bt">
-      <button class="bt bt-icone" id="btAtualizar" title="Atualizar agora"><svg><use href="#i-girar"/></svg></button>
+      <button class="bt bt-icone" id="btAtualizar" title="Atualizar a lista agora"><svg><use href="#i-girar"/></svg></button>
+      <button class="bt bt-icone" id="btAtualizacao" title="Atualização do conector"><svg><use href="#i-baixar"/></svg></button>
       <button class="bt bt-icone" id="btSair" title="Sair do painel"><svg><use href="#i-sair"/></svg></button>
     </div>
   </header>

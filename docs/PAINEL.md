@@ -45,3 +45,14 @@ A lista e a ficha aberta se atualizam sozinhas a cada 4 segundos.
 
 Não mostra nem armazena o conteúdo das conversas — isso fica no sistema dono, nunca no conector.
 Não gera o código em Python/exemplo de integração: isso está em `docs/PROMPT-PARA-AGENTES.md`.
+
+## Atualizar pelo painel
+
+O botão de atualização no topo (seta para baixo) mostra a versão instalada e a publicada no GitHub e
+atualiza com um clique. Por baixo: o conector grava `dados/atualizar.pedido` e uma unidade systemd
+`.path` (root) percebe o arquivo e roda `instalar/atualizar.sh` — o mesmo de sempre, com backup e
+volta automática. O conector nunca executa nada como root.
+
+Na primeira vez (instalações feitas antes desta versão), rode uma vez na VPS, como root:
+`bash /opt/dmk-whatsapp/instalar/atualizar.sh` — isso instala o gatilho; das próximas vezes o botão
+resolve sozinho. O painel avisa quando a versão nova responder e pede só um recarregar da página.

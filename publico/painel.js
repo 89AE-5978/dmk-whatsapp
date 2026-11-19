@@ -48,6 +48,61 @@
   });
   $('#btSair').addEventListener('click', () => entrar(''));
 
+  // ---------- atualização do conector pelo painel ----------
+  // GET /atualizacao compara as versões; POST grava o pedido que o systemd (root) atende com o
+  // atualizar.sh de sempre (backup e volta automática). Aqui só acompanhamos pelo /health.
+  $('#btAtualizacao').addEventListener('click', () => {
+    const m = abrirModal({ titulo: 'Atualização do conector', estreito: true, corpo: `
+      <div class="dados" style="margin-bottom:.75rem">
+        <div class="dado"><span>Instalada</span><b data-at-atual>…</b></div>
+        <div class="dado"><span>Publicada</span><b data-at-nova>consultando…</b></div>
+      </div>
+      <p class="aviso" data-at-aviso hidden></p>
+      <p style="color:var(--fraco);font-size:.75rem;margin-top:.625rem">A atualização guarda backup e, se algo não voltar, o conector repõe a versão anterior sozinho. As sessões reconectam com a credencial salva.</p>`,
+      rodape: [
+        { texto: 'Buscar de novo', onClick: (mm, bt) => consultarAtualizacao(mm, bt) },
+        { texto: 'Atualizar agora', principal: true, onClick: (mm, bt) => pedirAtualizacao(mm, bt) },
+      ] });
+    $('[data-acao="1"]', m).disabled = true;
+    consultarAtualizacao(m);
+  });
+  async function consultarAtualizacao(m, bt) {
+    const aviso = $('[data-at-aviso]', m); aviso.hidden = true; aviso.className = 'aviso';
+    try {
+      const e = await chamar('GET', '/atualizacao', null, bt);
+      $('[data-at-atual]', m).textContent = e.versao_atual;
+      $('[data-at-nova]', m).textContent = e.versao_nova || '—';
+      $('[data-acao="1"]', m).disabled = !(e.ha_nova && e.gatilho_pronto);
+      if (e.erro) { aviso.textContent = e.erro; aviso.hidden = false; }
+      else if (!e.ha_nova) { aviso.textContent = 'Já está na versão mais nova.'; aviso.classList.add('ok'); aviso.hidden = false; }
+      else if (!e.gatilho_pronto) { aviso.textContent = 'Há versão nova, mas o gatilho ainda não existe nesta VPS. Rode uma vez, como root: bash /opt/dmk-whatsapp/instalar/atualizar.sh — das próximas vezes este botão resolve sozinho.'; aviso.hidden = false; }
+      else { aviso.textContent = 'Versão nova disponível. A atualização leva por volta de um minuto e o painel reconecta sozinho.'; aviso.hidden = false; }
+    } catch {}
+  }
+  async function pedirAtualizacao(m, bt) {
+    if (m.dataset.pronta) return location.reload();
+    const aviso = $('[data-at-aviso]', m), daqui = $('[data-at-atual]', m).textContent;
+    const r = await chamar('POST', '/atualizacao', {}, bt).catch(() => null); if (!r) return;
+    bt.disabled = true; $('[data-acao="0"]', m).disabled = true;
+    aviso.className = 'aviso'; aviso.hidden = false;
+    aviso.textContent = `Atualizando ${r.de} → ${r.para}… O conector reinicia sozinho; esta tela avisa quando terminar.`;
+    const inicio = Date.now();
+    const olhar = async () => {
+      if (!document.body.contains(m)) return;
+      try {
+        const h = await (await fetch('/health', { cache: 'no-store' })).json();
+        if (h.versao && h.versao !== daqui) {
+          m.dataset.pronta = '1'; aviso.className = 'aviso ok';
+          aviso.textContent = `Atualizado para ${h.versao}. Recarregue a página para ver tudo novo.`;
+          const b1 = $('[data-acao="1"]', m); b1.textContent = 'Recarregar'; b1.disabled = false; return;
+        }
+      } catch {}
+      if (Date.now() - inicio > 5 * 60000) { aviso.className = 'aviso perigo'; aviso.textContent = 'Não concluiu em 5 minutos — pode ter voltado sozinha para a versão anterior. Na VPS: journalctl -u dmk-wa-atualizar -n 40 --no-pager'; return; }
+      setTimeout(olhar, 3000);
+    };
+    setTimeout(olhar, 5000);
+  }
+
   // ---------- carregar / render ----------
   const ESTADOS = { CONECTADO: ['Conectado', 'on'], AGUARDANDO_QR: ['Aguardando QR', 'qr'], INICIANDO: ['Iniciando', 'qr'], DESCONECTADO: ['Desconectado', 'off'], ERRO: ['Erro', 'erro'] };
   function selo(estado) { const [texto, classe] = ESTADOS[estado] || [estado, 'off']; return `<span class="selo ${classe}">${texto}</span>`; }
