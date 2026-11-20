@@ -20,7 +20,7 @@ A credencial pertence a uma sessão; ela define de qual número são os eventos 
 | `GET /events` | Até 30 eventos, `status` (`status`, `phone`), `history_pending`, `sync_error`. Envie `X-DMK-Features: actions` para receber também `reaction`, `revoke` e `edit`. |
 | `GET /media/<id do evento>` | Bytes do anexo. Baixe antes de confirmar. |
 | `POST /ack` | `{ "ids": [..] }` (até 30) depois de gravar cada evento. |
-| `POST /send` | `{ "to", "text", "request_id" }` → `{ "externalId" }`. Anexo: `media: { base64, mimetype, filename }` (até 10 MB). Citação: `reply: { id, from_me, body }`. |
+| `POST /send` | `{ "to", "text", "request_id" }` → `{ "externalId" }`. Anexo: `media: { base64, mimetype, filename }` (até 10 MB). Citação: `reply: { id, from_me, body }`. Lista/botões nativos (experimental, 1.3.4): `interactive: { style: "list"\|"buttons", body, footer?, button?, items: [{ id, label }] }` — o `text` segue obrigatório, com as opções numeradas, e é usado quando o nativo não é possível; a escolha do cliente volta como mensagem com o `id` no texto. |
 | `POST /react` | `{ "to", "messageId", "emoji" }` (emoji vazio tira a reação). |
 | `POST /edit` | `{ "to", "messageId", "text" }`, só mensagens enviadas por este número. |
 | `POST /delete` | `{ "to", "messageId" }`, só mensagens enviadas por este número. |

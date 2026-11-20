@@ -87,6 +87,13 @@ test('protocolo: código de uso único, fila só esvazia com confirmação, envi
   assert.equal((await s.pub('POST', '/send', { to: '5581999990001', text: 'outro', request_id: r }, a.token)).status, 409);
   assert.equal((await s.pub('POST', '/send', { to: '5581999990001', text: 'sem id' }, a.token)).status, 400);
   assert.equal((await s.pub('POST', '/send', { to: '123', text: 'x', request_id: rid() }, a.token)).status, 400);
+  // 1.3.4: lista/botões nativos chegam ao motor conferidos; pedido torto é recusado sem enviar nada
+  const antes = s.app.sessoes.motor.enviados.length;
+  assert.equal((await s.pub('POST', '/send', { to: '5581999990001', text: 'Escolha\n1. Sim\n2. Não', request_id: rid(), interactive: { style: 'buttons', body: 'Escolha', items: [{ id: 'o1', label: 'Sim' }, { id: 'o2', label: 'Não' }], lixo: '<b>' } }, a.token)).status, 200);
+  assert.deepEqual(s.app.sessoes.motor.enviados.at(-1).opcoes.interactive, { style: 'buttons', body: 'Escolha', footer: '', button: 'Ver opções', items: [{ id: 'o1', label: 'Sim' }, { id: 'o2', label: 'Não' }] });
+  assert.equal(s.app.sessoes.motor.enviados.at(-1).text, 'Escolha\n1. Sim\n2. Não', 'o texto numerado segue junto, como reserva');
+  assert.equal((await s.pub('POST', '/send', { to: '5581999990001', text: 'x', request_id: rid(), interactive: { body: 'x', items: [] } }, a.token)).status, 400);
+  assert.equal(s.app.sessoes.motor.enviados.length, antes + 1);
   assert.equal((await s.pub('POST', '/react', { to: '5581999990001', messageId: 'MSG00002', emoji: '👍' }, a.token)).status, 200);
   assert.equal((await s.pub('POST', '/read', { to: '5581999990001', messageIds: ['MSG00002'] }, a.token)).status, 200);
   assert.deepEqual(s.app.sessoes.motor.acoes.map((x) => x.tipo), ['react', 'read']);

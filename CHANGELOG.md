@@ -10,6 +10,12 @@
 - Essas mensagens, os cartões de contato e as localizações também seguem para os sistemas num campo novo e
   opcional do evento, `rich` (tipo, título, corpo, rodapé, opções, contatos, local), para quem quiser desenhar um
   cartão. Quem não conhece o campo continua usando só o texto.
+- Envio de lista e botões nativos do WhatsApp (experimental): `POST /send` aceita o campo opcional `interactive`
+  (`style` "list" ou "buttons", `body`, `footer`, `button`, `items` com `id` e `label`). O `text` continua
+  obrigatório e deve trazer as opções numeradas: é o que vai quando o envio nativo não é possível. Botões: até 3,
+  com rótulo de até 20 letras; fora disso vira lista (até 10 linhas). O WhatsApp não garante esse formato fora da
+  API oficial — pode não aparecer em alguns aparelhos; teste com o seu número antes de usar com clientes.
+  A escolha do cliente volta como mensagem comum, com o `id` da opção no texto.
 
 ## 1.3.3 — 20/11/2026
 

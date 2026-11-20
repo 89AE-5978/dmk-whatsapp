@@ -100,3 +100,41 @@ test('mensagem que não pôde ser decifrada é contada e avisada (antes sumia em
   assert.equal(typeof lib.sockets[0].opcoes.logger.error, 'function');
   await motor.stop(conta);
 });
+
+test('lista/botões nativos (1.3.4): monta a mensagem e entrega pelo relayMessage; sem suporte, segue em texto', async () => {
+  const relays = [], textos = [];
+  const lib = bibliotecaFalsa({ enviar: async (jid, c) => { textos.push(c.text); return { key: { id: 'T' + textos.length, remoteJid: jid, fromMe: true }, message: { conversation: c.text } }; } });
+  lib.modulo.generateWAMessageFromContent = (jid, conteudo, opcoes) => ({ key: { id: 'NATIVA1', remoteJid: jid, fromMe: true }, message: conteudo, userJid: opcoes.userJid });
+  const runtimes = new Map(), guardados = [];
+  const motor = createBaileysManager({ runtimeMap: runtimes, authRoot: raiz(), loadModule: () => lib.modulo, minSendIntervalMs: 0, saveMessage: async (_, m) => { guardados.push(m.key.id); } });
+  await motor.start(conta); await conectado(runtimes);
+  lib.sockets[0].relayMessage = async (jid, message, opcoes) => { relays.push({ jid, message, opcoes }); };
+  const pedido = { style: 'list', body: 'Como ajudar?', items: [{ id: 'o1', label: '2ª via' }, { id: 'o2', label: 'Atendente' }] };
+  const out = await motor.sendText(conta, '5581999990001', 'Como ajudar?\n1. 2ª via\n2. Atendente', { interactive: pedido });
+  assert.equal(out.externalId, 'NATIVA1'); assert.equal(out.native, true); assert.equal(textos.length, 0, 'não mandou o texto junto');
+  assert.equal(relays.length, 1); assert.equal(relays[0].opcoes.messageId, 'NATIVA1'); assert.equal(relays[0].opcoes.additionalNodes[0].tag, 'biz');
+  const linhas = JSON.parse(relays[0].message.viewOnceMessage.message.interactiveMessage.nativeFlowMessage.buttons[0].buttonParamsJson).sections[0].rows;
+  assert.deepEqual(linhas.map((r) => [r.id, r.title]), [['o1', '2ª via'], ['o2', 'Atendente']]);
+  assert.deepEqual(guardados, ['NATIVA1'], 'o conteúdo fica guardado para pedidos de reenvio');
+  // pedido inválido: ignora o nativo e manda o texto
+  await motor.sendText(conta, '5581999990001', 'só texto', { interactive: { body: '', items: [] } });
+  assert.deepEqual(textos, ['só texto']); assert.equal(relays.length, 1);
+  // biblioteca sem a função: segue em texto, sem erro
+  delete runtimes.get(1).mod.generateWAMessageFromContent;
+  const semSuporte = await motor.sendText(conta, '5581999990001', 'Como ajudar?\n1. 2ª via', { interactive: pedido });
+  assert.equal(semSuporte.native, undefined); assert.equal(textos.at(-1), 'Como ajudar?\n1. 2ª via'); assert.equal(relays.length, 1);
+  await motor.stop(conta);
+});
+
+test('mensagem de empresa recebida (1.3.4): chega como texto legível e com a estrutura', async () => {
+  const lib = bibliotecaFalsa(), runtimes = new Map(), recebidas = [];
+  const motor = createBaileysManager({ runtimeMap: runtimes, authRoot: raiz(), loadModule: () => lib.modulo, onMessage: async (_, m) => { recebidas.push(m); } });
+  await motor.start(conta); await conectado(runtimes);
+  lib.sockets[0].ev.emit('messages.upsert', { type: 'notify', messages: [{ key: { id: 'EMP1', remoteJid: '558132176990@s.whatsapp.net', fromMe: false }, messageTimestamp: Math.floor(Date.now() / 1000), pushName: 'Neoenergia',
+    message: { interactiveMessage: { body: { text: 'Sua fatura está disponível.' }, nativeFlowMessage: { buttons: [{ name: 'cta_url', buttonParamsJson: '{"display_text":"Ver fatura","url":"https://exemplo.test/f"}' }] } } } }] });
+  for (let i = 0; i < 100 && !recebidas.length; i++) await esperar(10);
+  assert.equal(recebidas.length, 1); assert.equal(recebidas[0].text, 'Sua fatura está disponível.\nOpções: Ver fatura (https://exemplo.test/f)');
+  assert.deepEqual(recebidas[0].rich, { tipo: 'interativa', corpo: 'Sua fatura está disponível.', opcoes: [{ rotulo: 'Ver fatura', tipo: 'link', valor: 'https://exemplo.test/f' }] });
+  assert.equal(recebidas[0].botEligible, false);
+  await motor.stop(conta);
+});

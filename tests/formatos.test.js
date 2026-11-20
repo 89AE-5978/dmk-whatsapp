@@ -2,7 +2,7 @@
 // Mensagens de empresa do WhatsApp viram texto legível (1.3.4). Formatos montados à mão conforme o que o
 // Baileys entrega; a mensagem real da Celpe não está disponível aqui (o servidor guardou só o aviso antigo).
 const test=require('node:test'),assert=require('node:assert/strict'),F=require('../lib/vendor/whatsapp-formatos');
-test('mensagens de empresa, contato e localização: texto e estrutura',()=>{
+test('mensagens de empresa, contato e localização: texto, estrutura e envio nativo',()=>{
 // interativa com botões de fluxo nativo (o formato "interactiveMessage" que aparecia como indisponível)
 assert.equal(F.texto({interactiveMessage:{header:{title:'Neoenergia'},body:{text:'Sua fatura de novembro está disponível.'},footer:{text:'Atendimento 116'},nativeFlowMessage:{buttons:[{name:'cta_url',buttonParamsJson:JSON.stringify({display_text:'Ver fatura',url:'https://exemplo.test/f'})},{name:'quick_reply',buttonParamsJson:JSON.stringify({display_text:'Falar com atendente',id:'a1'})},{name:'cta_copy',buttonParamsJson:JSON.stringify({display_text:'Copiar código Pix',copy_code:'000201'})}]}}}),
  'Neoenergia\nSua fatura de novembro está disponível.\nAtendimento 116\nOpções: Ver fatura (https://exemplo.test/f) · Falar com atendente · Copiar código Pix (000201)');
@@ -39,4 +39,17 @@ assert.equal(F.limpar(null),null);assert.equal(F.limpar({tipo:'script',corpo:'x'
 const sujo=F.limpar({tipo:'botoes',corpo:'x'.repeat(9000),estranho:'<b>',opcoes:[{rotulo:'A',tipo:'inventado',valor:{a:1}},null,'texto',{rotulo:''},...Array.from({length:50},(_,i)=>({rotulo:'o'+i}))],contatos:'não é lista',local:{lat:999,lng:0}});
 assert.equal(sujo.corpo.length,3000);assert.equal('estranho'in sujo,false);assert.equal(sujo.opcoes.length,27);assert.equal(sujo.opcoes[0].tipo,'resposta');assert.equal(sujo.opcoes[0].valor,'[object Object]');assert.equal('contatos'in sujo,false);assert.equal('local'in sujo,false);
 assert.deepEqual(F.limpar(e),e,'limpar não muda o que já está certo');
+// envio nativo (experimental): pedido conferido e mensagem montada
+assert.equal(F.limparEnvio(null),null);assert.equal(F.limparEnvio({body:'x',items:[]}),null);assert.equal(F.limparEnvio({body:'',items:[{id:'o1',label:'A'}]}),null);
+assert.equal(F.limparEnvio({body:'x',items:[{id:'tem espaço',label:'A'},{id:'o2',label:''}]}),null,'ids e rótulos inválidos são descartados');
+const b3=F.limparEnvio({style:'buttons',body:'Escolha',items:[{id:'o1',label:'Sim'},{id:'o2',label:'Não'}]});assert.equal(b3.style,'buttons');
+const cb=F.conteudoEnvio(b3).viewOnceMessage.message.interactiveMessage;assert.equal(cb.body.text,'Escolha');assert.deepEqual(cb.nativeFlowMessage.buttons.map(x=>[x.name,JSON.parse(x.buttonParamsJson)]),[['quick_reply',{display_text:'Sim',id:'o1'}],['quick_reply',{display_text:'Não',id:'o2'}]]);
+assert.equal(F.limparEnvio({style:'buttons',body:'x',items:[1,2,3,4].map(n=>({id:'o'+n,label:'Op '+n}))}).style,'list','mais de 3 botões vira lista');
+assert.equal(F.limparEnvio({style:'buttons',body:'x',items:[{id:'o1',label:'Um rótulo comprido demais para botão'}]}).style,'list');
+const l=F.limparEnvio({style:'list',body:'Como ajudar?',button:'Abrir o menu de opções agora',items:[{id:'o1',label:'2ª via'},{id:'o2',label:'Quero falar com um atendente humano'},...Array.from({length:12},(_,i)=>({id:'x'+i,label:'L'+i}))]});
+assert.equal(l.items.length,10);assert.equal(l.button,'Abrir o menu de opçõ');const sel=JSON.parse(F.conteudoEnvio(l).viewOnceMessage.message.interactiveMessage.nativeFlowMessage.buttons[0].buttonParamsJson);
+assert.equal(sel.title,l.button);assert.deepEqual(sel.sections[0].rows.slice(0,2),[{id:'o1',title:'2ª via',description:''},{id:'o2',title:'Quero falar com um aten…',description:'Quero falar com um atendente humano'}]);
+assert.equal(F.NOS_ENVIO[0].tag,'biz');assert.equal(F.NOS_ENVIO[0].content[0].content[0].attrs.name,'mixed');
+// o que mandamos, se voltar para nós, é lido pelo mesmo leitor (ida e volta)
+assert.deepEqual(F.estrutura(F.conteudoEnvio(b3).viewOnceMessage.message),{tipo:'interativa',corpo:'Escolha',opcoes:[{rotulo:'Sim',tipo:'resposta'},{rotulo:'Não',tipo:'resposta'}]});
 });
