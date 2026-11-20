@@ -20,6 +20,7 @@ Estes quatro arquivos vieram de `dmksolutions/DMK-Prisma`, pasta `sistema/lib`, 
 - Código 440 (sessão substituída) para a sessão com estado `SUBSTITUIDA` em vez de reconectar em loop.
 - Envios da mesma sessão em fila, com `minSendIntervalMs`; dois envios sem resposta reabrem o socket.
 - `proto` exportado pelo normalizador do módulo.
+- 1.3.4: `messageText` usa `whatsapp-formatos.js` (mensagens de empresa em texto). O mesmo arquivo existe no DMK Prisma (`sistema/lib/whatsapp-formatos.js`, mod 1.523); manter os dois iguais.
 
 `dmk-chat-connector.js`:
 - Opção `route` (distribuição de atendimento — `lib/atendimento.js`): quem recebe cada conversa, quem pode

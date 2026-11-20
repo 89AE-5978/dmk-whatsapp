@@ -1,5 +1,22 @@
 # Histórico
 
+## 1.3.4 — 20/11/2026
+
+- Mensagens "de empresa" (as que a Celpe/Neoenergia, bancos e lojas mandam: interativas, com botões, listas,
+  modelos e enquetes) chegavam aos sistemas como "Conteúdo recebido pelo WhatsApp (interactiveMessage).
+  Visualização deste formato indisponível". Agora chegam como texto: título, corpo, rodapé e as opções oferecidas
+  (com o link ou código de cada botão, quando há). Anexo no cabeçalho é sinalizado para ver no celular.
+  Vale para as próximas mensagens; as que já chegaram com o aviso antigo ficam como estão.
+- Essas mensagens, os cartões de contato e as localizações também seguem para os sistemas num campo novo e
+  opcional do evento, `rich` (tipo, título, corpo, rodapé, opções, contatos, local), para quem quiser desenhar um
+  cartão. Quem não conhece o campo continua usando só o texto.
+- Envio de lista e botões nativos do WhatsApp (experimental): `POST /send` aceita o campo opcional `interactive`
+  (`style` "list" ou "buttons", `body`, `footer`, `button`, `items` com `id` e `label`). O `text` continua
+  obrigatório e deve trazer as opções numeradas: é o que vai quando o envio nativo não é possível. Botões: até 3,
+  com rótulo de até 20 letras; fora disso vira lista (até 10 linhas). O WhatsApp não garante esse formato fora da
+  API oficial — pode não aparecer em alguns aparelhos; teste com o seu número antes de usar com clientes.
+  A escolha do cliente volta como mensagem comum, com o `id` da opção no texto.
+
 ## 1.3.3 — 20/11/2026
 
 - Toda queda de conexão com o WhatsApp vai para o journal com o código e o motivo. No teste da 1.3.2 o aviso
