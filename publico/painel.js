@@ -171,15 +171,18 @@
   // ---------- filtros (diálogo único do sistema) ----------
   function abrirFiltros() {
     const atual = new Set(filtroEstados);
-    abrirModal({ titulo: 'Filtros', estreito: true, corpo: `<div class="campos">
-      <div class="campo"><label>Estado</label>${Object.entries(ESTADOS).map(([valor, [rotulo]]) =>
-        `<label class="linha-marcar">
-          <input type="checkbox" value="${valor}" ${atual.has(valor) ? 'checked' : ''}> ${rotulo}</label>`).join('')}</div>
+    // Sem caixa de marcar do navegador (saía gigante e desalinhada, herdando o estilo dos campos de texto):
+    // cada estado é um botão de liga/desliga com o mesmo selo colorido da lista.
+    const m = abrirModal({ titulo: 'Filtros', icone: 'filtro', estreito: true, corpo: `<div class="campos">
+      <div class="campo"><label>Estado da sessão</label><div class="opcoes-filtro" role="group" aria-label="Estado da sessão">${Object.keys(ESTADOS).map((valor) =>
+        `<button type="button" class="opcao-filtro" data-valor="${valor}" aria-pressed="${atual.has(valor)}"><span class="marca-filtro"><svg><use href="#i-ok"/></svg></span>${selo(valor)}</button>`).join('')}</div>
+        <span class="dica">Toque nos estados que quer ver. Sem nenhum marcado, a lista mostra todos.</span></div>
     </div>`, rodape: [
-      { texto: 'Limpar', onClick: (m) => { filtroEstados = new Set(); render(); m.remove(); fundo.hidden = true; } },
-      { texto: 'Aplicar', principal: true, onClick: (m) => {
-        filtroEstados = new Set($$('input[type=checkbox]:checked', m).map((c) => c.value)); render(); m.remove(); fundo.hidden = true; } },
+      { texto: 'Limpar', onClick: (mm) => { filtroEstados = new Set(); render(); mm.remove(); fundo.hidden = true; } },
+      { texto: 'Aplicar', principal: true, onClick: (mm) => {
+        filtroEstados = new Set($$('.opcao-filtro[aria-pressed=true]', mm).map((c) => c.dataset.valor)); render(); mm.remove(); fundo.hidden = true; } },
     ] });
+    $$('.opcao-filtro', m).forEach((b) => b.addEventListener('click', () => b.setAttribute('aria-pressed', String(b.getAttribute('aria-pressed') !== 'true'))));
   }
   $('#btFiltros').addEventListener('click', abrirFiltros);
 

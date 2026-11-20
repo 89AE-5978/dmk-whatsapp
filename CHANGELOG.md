@@ -1,5 +1,11 @@
 # Histórico
 
+## 1.3.7 — 20/11/2026
+
+- Painel, diálogo **Filtros**: as caixas de marcar do navegador saíam gigantes e desalinhadas (herdavam o estilo
+  dos campos de texto). Agora cada estado é uma opção de liga/desliga no padrão do painel, com o mesmo selo
+  colorido da lista; cabeçalho com o ícone de filtro. Nenhum componente nativo do navegador no diálogo.
+
 ## 1.3.6 — 20/11/2026
 
 **A causa do "parou de sincronizar": sistema que só envia virava dono da conversa**

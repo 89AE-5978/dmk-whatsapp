@@ -198,7 +198,6 @@ input[type=search]::-webkit-search-cancel-button { display: none; }
 
 /* ---------- classes utilitárias (a CSP do conector bloqueia style= inline; tudo vira classe) ---------- */
 .nota { color: var(--fraco); font-size: .75rem; margin-top: .625rem; }
-.linha-marcar { display: flex; align-items: center; gap: .5rem; font-weight: 400; padding: .25rem 0; }
 .grupo-rodape { margin-top: 1rem; }
 .campos-espaco { margin-top: .75rem; }
 /* Moldura das tabelas dentro da ficha: uma linha por registro, sem quebrar; rola na horizontal se apertar. */
@@ -273,3 +272,12 @@ input[type=search]::-webkit-search-cancel-button { display: none; }
 .paginacao .grupo-bt { min-width: 0; }
 .paginacao .total { flex: none; }
 .fora-da-tela { position: fixed; left: -100rem; top: 0; width: 1px; height: 1px; opacity: 0; }
+/* Filtros: opções de liga/desliga (nada de caixa de marcar nativa). */
+.opcoes-filtro { display: grid; gap: .4rem; }
+.opcao-filtro { display: flex; align-items: center; gap: .65rem; width: 100%; height: 2.6rem; padding: 0 .75rem; text-align: left; cursor: pointer;
+  background: var(--branco); border: 1px solid var(--borda); border-radius: var(--raio); transition: border-color .15s, background .15s; }
+.opcao-filtro:hover { border-color: var(--azul); }
+.opcao-filtro[aria-pressed=true] { border-color: var(--azul); background: var(--azul-claro); }
+.marca-filtro { flex: none; display: grid; place-items: center; width: 1.25rem; height: 1.25rem; border: 1.5px solid var(--borda-forte); border-radius: .35rem; color: transparent; background: var(--branco); }
+.marca-filtro svg { width: .85rem; height: .85rem; stroke-width: 3; }
+.opcao-filtro[aria-pressed=true] .marca-filtro { background: var(--azul); border-color: var(--azul); color: #fff; }
