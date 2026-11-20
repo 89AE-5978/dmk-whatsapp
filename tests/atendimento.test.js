@@ -171,3 +171,29 @@ test('conexão de avisos (cobrança, alertas) envia sem assumir e sem ser barrad
   const daLoja = (await s.pub('GET', '/messages?to=5581999990004', null, loja.token)).corpo.messages.map((m) => m.texto);
   assert.deepEqual(daLoja, ['Sua fatura vence amanhã', 'já paguei', 'Obrigado!', 'Pagamento confirmado']);
 });
+
+test('sistema que só envia (1.3.6): ligado como atendimento mas nunca buscou mensagens não prende a conversa', async (t) => {
+  const dir = pasta(), s = await subir(dir); t.after(() => s.app.encerrar());
+  const id = await sessao(s), loja = await conexao(s, id, 'Loja'), iot = await conexao(s, id, 'SmartCore'); // sem marcar "avisos"
+  await eventos(s, loja); // a loja busca mensagens; o SmartCore nunca
+  const estado = s.app.sessoes; // envelhece a ligação do SmartCore: ligado há mais de 2 minutos
+  const grants = () => JSON.parse(fs.readFileSync(path.join(dir, 'conector.json'), 'utf8')).sessoes[0].store.dmk_connectors;
+  estado.gravarAgora();
+  assert.ok(grants().find((g) => g.id === loja.id).last_events_at, 'a busca de mensagens fica registrada');
+  assert.ok(grants().find((g) => g.id === iot.id).paired_at, 'a data da ligação fica registrada');
+  // Recém-ligado ainda conta como atendimento (um sistema novo consulta em segundos): assume ao enviar.
+  assert.equal((await s.pub('POST', '/send', { to: '5581999990010', text: 'Teste do conector', request_id: rid() }, iot.token)).status, 200);
+  assert.equal((await s.admin('GET', `/sessoes/${id}/atendimentos`)).corpo.conversas.find((c) => c.phone === '5581999990010').owner.id, iot.id);
+  // Passados 2 minutos sem nunca buscar, é "só envia": a conversa presa volta para todos na próxima mensagem.
+  estado.sessaoDaCredencial(iot.token).sessao.store.dmk_connectors.find((g) => g.id === iot.id).paired_at = Date.now() - 5 * 60000;
+  await msg(s, id, '5581999990010', 'recebi o teste, obrigado');
+  assert.deepEqual((await eventos(s, loja)).filter(([tp]) => tp === 'message').map(([, x]) => x), ['recebi o teste, obrigado'], 'a resposta do cliente chega a quem atende');
+  assert.equal((await s.admin('GET', `/sessoes/${id}/atendimentos`)).corpo.conversas.find((c) => c.phone === '5581999990010').owner, null, 'conversa presa foi liberada');
+  // E os próximos envios dele não assumem nem são barrados.
+  assert.equal((await s.pub('POST', '/send', { to: '5581999990010', text: 'Obrigado!', request_id: rid() }, loja.token)).status, 200);
+  assert.equal((await s.pub('POST', '/send', { to: '5581999990010', text: 'Alerta: caixa cheia', request_id: rid() }, iot.token)).status, 200, 'aviso passa mesmo com dono');
+  assert.equal((await s.admin('GET', `/sessoes/${id}/atendimentos`)).corpo.conversas.find((c) => c.phone === '5581999990010').owner.id, loja.id);
+  const teste = (await s.admin('POST', `/sessoes/${id}/teste`, {})).corpo.checks;
+  assert.match(teste.find((c) => c.nome === 'Sistemas que só enviam').detalhe, /SmartCore/);
+  assert.equal(teste.find((c) => c.nome === 'Sistemas consultando').ok, true, 'quem só envia não é acusado de parado');
+});
