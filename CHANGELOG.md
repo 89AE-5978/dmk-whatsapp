@@ -7,6 +7,9 @@
   Visualização deste formato indisponível". Agora chegam como texto: título, corpo, rodapé e as opções oferecidas
   (com o link ou código de cada botão, quando há). Anexo no cabeçalho é sinalizado para ver no celular.
   Vale para as próximas mensagens; as que já chegaram com o aviso antigo ficam como estão.
+- Essas mensagens, os cartões de contato e as localizações também seguem para os sistemas num campo novo e
+  opcional do evento, `rich` (tipo, título, corpo, rodapé, opções, contatos, local), para quem quiser desenhar um
+  cartão. Quem não conhece o campo continua usando só o texto.
 
 ## 1.3.3 — 20/11/2026
 
