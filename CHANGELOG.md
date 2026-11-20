@@ -1,5 +1,10 @@
 # Histórico
 
+## 1.3.3 — 20/11/2026
+
+- Toda queda de conexão com o WhatsApp vai para o journal com o código e o motivo. No teste da 1.3.2 o aviso
+  "Buffer timeout reached" se repetia a cada minuto — sinal de reconexão — e a queda em si não aparecia.
+
 ## 1.3.2 — 19/11/2026
 
 - Modo diagnóstico para o recebimento: `touch /opt/dmk-whatsapp/dados/diagnostico` liga, apagar o arquivo desliga
