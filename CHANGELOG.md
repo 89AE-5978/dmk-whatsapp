@@ -1,5 +1,29 @@
 # Histórico
 
+## 1.3.5 — 20/11/2026
+
+**"Depois de atualizar, para de sincronizar"**
+- Ao parar uma sessão (pausar, reiniciar ou ATUALIZAR o conector), a última alteração da credencial do WhatsApp
+  que estava na fila de gravação era descartada, e gravações de chaves de criptografia em andamento podiam ser
+  cortadas pela saída do processo. A sessão voltava "Conectada" com chaves antigas — risco de as mensagens
+  recebidas não abrirem mais. Agora a parada fecha o socket e só solta a sessão depois que credencial e chaves
+  estão inteiras no disco (o mesmo numa queda com reconexão, antes de abrir o socket novo). Ao trocar número ou
+  excluir, nada é regravado. Saída do serviço com trava de 30 s.
+- Para achar QUEM parou: a aba **Sistemas ligados** mostra a **última consulta** de cada sistema e marca
+  "Parado há X" quando um sistema ligado fica mais de 2 minutos sem buscar eventos; o **Testar** ganhou a
+  conferência "Sistemas consultando", com o nome, desde quando e quantos eventos estão na fila dele.
+  (Na VPS de produção, em 20/11, era o Smart Core que não consultava desde a noite anterior; Prisma e Serviços
+  seguiam normais. O conserto desse caso é no cliente do sistema que parou.)
+
+**Painel**
+- Ícone na aba do navegador (`/painel/icone.svg`) e manifesto (`/painel/app.webmanifest`): dá para instalar o
+  painel como aplicativo, com a barra na cor da marca; no celular a barra do navegador já usa a cor.
+- Ficha da sessão: abas numa faixa própria (os cartões ficavam colados nelas), cartões em 4 colunas (2 no
+  celular), cabeçalho com ícone e sem a faixa vazia que sobrava embaixo.
+- Sistemas ligados: ações só com ícone e ID junto do nome — a tabela cabe sem rolar de lado no computador.
+- Botão de copiar: quando o navegador nega a área de transferência, tenta o método antigo; se também falhar,
+  avisa e deixa o texto selecionado (antes o botão simplesmente não fazia nada).
+
 ## 1.3.4 — 20/11/2026
 
 - Mensagens "de empresa" (as que a Celpe/Neoenergia, bancos e lojas mandam: interativas, com botões, listas,

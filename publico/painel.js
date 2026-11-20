@@ -51,7 +51,17 @@
   // Copiar com retorno visual (o ícone vira um check por um instante). Sem avisos nativos; se o
   // navegador negar a área de transferência, o texto fica selecionado para copiar com Ctrl+C.
   async function copiar(texto, bt) {
-    try { await navigator.clipboard.writeText(texto); } catch { return false; }
+    // 1.3.5: alguns navegadores (janela embutida, aba sem permissão) negam navigator.clipboard e o botão não fazia
+    // nada. Segunda tentativa pelo método antigo, com um campo temporário; se as duas falharem, avisa o que fazer.
+    let ok = false;
+    try { await navigator.clipboard.writeText(texto); ok = true; } catch {}
+    if (!ok) {
+      const t = document.createElement('textarea'); t.value = texto; t.setAttribute('readonly', ''); t.className = 'fora-da-tela';
+      document.body.appendChild(t); t.select(); t.setSelectionRange(0, texto.length);
+      try { ok = document.execCommand('copy'); } catch {}
+      t.remove();
+    }
+    if (!ok) { avisar('O navegador não deixou copiar. O texto ficou selecionado: aperte Ctrl+C.'); return false; }
     if (bt) { const use = bt.querySelector('use'), antes = use.getAttribute('href'); use.setAttribute('href', '#i-ok'); bt.classList.add('copiado'); setTimeout(() => { use.setAttribute('href', antes); bt.classList.remove('copiado'); }, 1600); }
     return true;
   }
@@ -174,12 +184,14 @@
   $('#btFiltros').addEventListener('click', abrirFiltros);
 
   // ---------- modal genérico ----------
-  function abrirModal({ titulo, corpo, rodape = [], estreito = false, id }) {
+  function abrirModal({ titulo, corpo, rodape = [], estreito = false, id, icone = 'marca', abas = '' }) {
     fundo.hidden = false;
     const m = document.createElement('div'); m.className = 'modal' + (estreito ? ' estreito' : ''); if (id) m.dataset.id = id;
-    m.innerHTML = `<header><h2>${esc(titulo)}</h2><button class="bt bt-icone" data-fechar title="Fechar"><svg><use href="#i-fechar"/></svg></button></header>
-      <div class="corpo-modal">${corpo}</div>
-      <footer>${rodape.map((b, i) => `<button class="bt ${b.principal ? 'bt-principal' : ''} ${b.perigo ? 'bt-perigo' : ''}" data-acao="${i}">${esc(b.texto)}</button>`).join('')}</footer>`;
+    // Cabeçalho padrão: ícone + título + fechar. Abas (quando há) ficam numa faixa própria, fora do corpo que rola.
+    // Sem botões, não há rodapé (antes sobrava uma faixa vazia esticada embaixo da ficha).
+    m.innerHTML = `<header><span class="chip-modal"><svg><use href="#i-${icone}"/></svg></span><h2>${esc(titulo)}</h2><button class="bt bt-icone" data-fechar title="Fechar" aria-label="Fechar"><svg><use href="#i-fechar"/></svg></button></header>
+      ${abas}<div class="corpo-modal">${corpo}</div>
+      ${rodape.length ? `<footer>${rodape.map((b, i) => `<button class="bt ${b.principal ? 'bt-principal' : ''} ${b.perigo ? 'bt-perigo' : ''}" data-acao="${i}">${esc(b.texto)}</button>`).join('')}</footer>` : ''}`;
     document.body.appendChild(m);
     const fechar = () => { m.remove(); if (!$('.modal')) fundo.hidden = true; };
     $('[data-fechar]', m).addEventListener('click', fechar);
@@ -205,12 +217,12 @@
   // ---------- ficha da sessão (abas) ----------
   async function abrirFicha(id) {
     const s = sessoes.find((x) => x.id === id); if (!s) return;
-    const m = abrirModal({ titulo: `${s.nome} · sessão ${s.id}`, id, corpo: `
+    const m = abrirModal({ titulo: `${s.nome} · sessão ${s.id}`, id, icone: 'fone', abas: `
       <div class="abas" role="tablist">
         <button class="aba" role="tab" aria-selected="true" data-aba="geral">Geral</button>
         <button class="aba" role="tab" aria-selected="false" data-aba="atendimentos">Atendimentos</button>
         <button class="aba" role="tab" aria-selected="false" data-aba="sistemas">Sistemas ligados</button>
-      </div>
+      </div>`, corpo: `
       <div data-painel="geral"></div><div data-painel="atendimentos" hidden></div><div data-painel="sistemas" hidden></div>`, rodape: [] });
     $$('.aba', m).forEach((a) => a.addEventListener('click', () => {
       $$('.aba', m).forEach((x) => x.setAttribute('aria-selected', String(x === a)));
@@ -329,18 +341,28 @@
   }
 
   // ---------- sistemas ligados ----------
+  // Cada sistema busca os eventos a cada poucos segundos. Ligado, com mais de 2 minutos sem consultar, é ele que
+  // parou (reiniciou e não voltou, perdeu a rede, foi desligado) — a fila dele cresce e as mensagens não aparecem lá.
+  function consulta(a) {
+    if (a.revoked_at || !a.paired) return '—';
+    if (!a.last_seen_at) return '<span class="selo qr">Nunca consultou</span>';
+    const seg = Math.max(0, Math.round((Date.now() - new Date(a.last_seen_at).getTime()) / 1000)); // o protocolo guarda em milissegundos
+    const ha = seg < 60 ? 'agora' : seg < 3600 ? 'há ' + Math.round(seg / 60) + ' min' : seg < 86400 ? 'há ' + Math.round(seg / 3600) + ' h' : 'há ' + Math.round(seg / 86400) + ' dia(s)';
+    return seg > 120 ? `<span class="selo erro" title="Última consulta em ${new Date(a.last_seen_at).toLocaleString('pt-BR')}">Parado ${ha}</span>` : `<span class="selo on">${ha}</span>`;
+  }
   async function carregarAutorizacoes(m, id) {
     const alvo = $('[data-painel=sistemas]', m); alvo.innerHTML = 'Carregando…';
     const { autorizacoes } = await api('GET', `/sessoes/${id}/autorizacoes`);
     alvo.classList.add('quadro');
     alvo.innerHTML = autorizacoes.length ? `<table class="dmk-lista">
-      <thead><tr><th>Conexão</th><th>ID</th><th>Tipo</th><th>Estado</th><th class="num">Fila</th><th></th></tr></thead>
+      <thead><tr><th>Conexão</th><th>Tipo</th><th>Estado</th><th>Última consulta</th><th class="num">Fila</th><th></th></tr></thead>
       <tbody>${autorizacoes.map((a) => `<tr>
-        <td class="contato"><b>${esc(a.label)}</b><small>${esc(a.installation)}</small></td><td class="id" title="ID completo: ${esc(a.id)}">${esc(a.id.slice(0, 8))}</td>
+        <td class="contato"><b>${esc(a.label)}</b><small title="ID completo: ${esc(a.id)}">${esc(a.installation)} · ID ${esc(a.id.slice(0, 8))}</small></td>
         <td><div class="grupo-bt seg">${['atendimento', 'avisos'].map((t) => `<button class="bt bt-mini ${a.tipo === t ? 'bt-principal' : ''}" data-tipo="${t}" data-aut="${a.id}" title="${t === 'avisos' ? 'Envia avisos sem assumir a conversa (cobrança, alertas)' : 'Assume a conversa quando responde'}" ${a.revoked_at ? 'disabled' : ''}>${t === 'avisos' ? 'Avisos' : 'Atendimento'}</button>`).join('')}</div></td>
         <td>${a.revoked_at ? '<span class="selo off">Revogada</span>' : a.paired ? '<span class="selo on">Ligada</span>' : '<span class="selo qr">Aguardando</span>'}</td>
+        <td>${consulta(a)}</td>
         <td class="num">${a.pending}</td>
-        <td><div class="grupo-bt">${a.revoked_at ? '' : `<button class="bt bt-mini bt-perigo" data-revogar="${a.id}"><svg><use href="#i-fechar"/></svg><span>Revogar</span></button>`}<button class="bt bt-mini" data-excluir-aut="${a.id}" title="Excluir do histórico desta sessão"><svg><use href="#i-lixo"/></svg><span>Excluir</span></button></div></td>
+        <td><div class="grupo-bt">${a.revoked_at ? '' : `<button class="bt bt-mini bt-so-icone bt-perigo" data-revogar="${a.id}" title="Revogar o acesso deste sistema" aria-label="Revogar o acesso de ${esc(a.label)}"><svg><use href="#i-fechar"/></svg></button>`}<button class="bt bt-mini bt-so-icone" data-excluir-aut="${a.id}" title="Excluir do histórico desta sessão" aria-label="Excluir ${esc(a.label)} do histórico"><svg><use href="#i-lixo"/></svg></button></div></td>
       </tr>`).join('')}</tbody></table>` : '<p class="vazio">Nenhum sistema ligado a esta sessão.</p>';
     $$('[data-tipo]', alvo).forEach((bt) => bt.addEventListener('click', async () => { if (bt.classList.contains('bt-principal')) return; await chamar('POST', `/sessoes/${id}/autorizacoes/${bt.dataset.aut}/tipo`, { tipo: bt.dataset.tipo }, bt); carregarAutorizacoes(m, id); }));
     $$('[data-revogar]', alvo).forEach((bt) => bt.addEventListener('click', () => confirmarPerigo('Revogar acesso', 'O sistema para de ler e enviar por esta sessão na próxima consulta.', async (bt2) => { await chamar('POST', `/sessoes/${id}/autorizacoes/${bt.dataset.revogar}/revogar`, null, bt2); carregarAutorizacoes(m, id); carregar(); })));

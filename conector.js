@@ -152,6 +152,12 @@ if (require.main === module) {
     app.sessoes.iniciar();
   });
   let saindo = false;
-  for (const sinal of ['SIGTERM', 'SIGINT']) process.on(sinal, async () => { if (saindo) return; saindo = true; await app.encerrar().catch(() => {}); process.exit(0); });
+  for (const sinal of ['SIGTERM', 'SIGINT']) process.on(sinal, async () => {
+    if (saindo) return; saindo = true;
+    // 1.3.5: encerrar() espera a credencial e as chaves de cada sessão chegarem ao disco. Trava de segurança:
+    // se algo prender a saída, termina em 30 s (bem antes dos 90 s em que o systemd mataria o processo à força).
+    setTimeout(() => process.exit(0), 30000).unref();
+    await app.encerrar().catch(() => {}); process.exit(0);
+  });
 }
 module.exports = { criarServidor, VERSAO };
