@@ -138,3 +138,37 @@ test('mensagem de empresa recebida (1.3.4): chega como texto legível e com a es
   assert.equal(recebidas[0].botEligible, false);
   await motor.stop(conta);
 });
+
+test('parar/atualizar (1.3.5): credencial na fila e chaves em gravação chegam ao disco antes de soltar a sessão', async () => {
+  const lib = bibliotecaFalsa(), runtimes = new Map();
+  let credsSalvas = 0, chavesGravadas = 0, chavesIniciadas = 0;
+  const modulo = { ...lib.modulo, useMultiFileAuthState: async () => ({
+    state: { creds: {}, keys: { get: async () => ({}), set: async () => { chavesIniciadas++; await esperar(300); chavesGravadas++; } } },
+    saveCreds: async () => { await esperar(50); credsSalvas++; } }) };
+  const motor = createBaileysManager({ runtimeMap: runtimes, authRoot: raiz(), loadModule: () => modulo });
+  await motor.start(conta); await conectado(runtimes);
+  const sock = lib.sockets[0];
+  // Uma mensagem acabou de chegar: a biblioteca grava chaves (lento) e avisa que a credencial mudou — e o serviço para.
+  sock.opcoes.auth.keys.set({ session: { a: 1 } });
+  sock.ev.emit('creds.update', {}); sock.ev.emit('creds.update', {});
+  await esperar(5); // a gravação da chave já começou, mas não terminou
+  assert.equal(chavesIniciadas, 1); assert.equal(chavesGravadas, 0);
+  await motor.stop(conta);
+  assert.equal(chavesGravadas, 1, 'a parada esperou a gravação da chave terminar');
+  assert.ok(credsSalvas >= 2, 'as gravações da credencial que estavam na fila não foram puladas (antes: 0)');
+  // Depois de solto, o socket antigo não grava mais nada por cima.
+  const antes = credsSalvas; sock.ev.emit('creds.update', {}); await esperar(120);
+  assert.equal(credsSalvas, antes);
+});
+
+test('trocar número/excluir (1.3.5): credencial que vai ser apagada não é regravada', async () => {
+  const lib = bibliotecaFalsa(), runtimes = new Map();
+  let credsSalvas = 0;
+  const modulo = { ...lib.modulo, useMultiFileAuthState: async () => ({ state: { creds: {}, keys: {} }, saveCreds: async () => { credsSalvas++; } }) };
+  const motor = createBaileysManager({ runtimeMap: runtimes, authRoot: raiz(), loadModule: () => modulo });
+  await motor.start(conta); await conectado(runtimes);
+  lib.sockets[0].ev.emit('creds.update', {}); await esperar(20);
+  const antes = credsSalvas;
+  await motor.stop(conta, { deleteAuth: true });
+  assert.equal(credsSalvas, antes);
+});
