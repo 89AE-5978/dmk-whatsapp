@@ -1,5 +1,13 @@
 # Histórico
 
+## 1.3.4 — 20/11/2026
+
+- Mensagens "de empresa" (as que a Celpe/Neoenergia, bancos e lojas mandam: interativas, com botões, listas,
+  modelos e enquetes) chegavam aos sistemas como "Conteúdo recebido pelo WhatsApp (interactiveMessage).
+  Visualização deste formato indisponível". Agora chegam como texto: título, corpo, rodapé e as opções oferecidas
+  (com o link ou código de cada botão, quando há). Anexo no cabeçalho é sinalizado para ver no celular.
+  Vale para as próximas mensagens; as que já chegaram com o aviso antigo ficam como estão.
+
 ## 1.3.3 — 20/11/2026
 
 - Toda queda de conexão com o WhatsApp vai para o journal com o código e o motivo. No teste da 1.3.2 o aviso
