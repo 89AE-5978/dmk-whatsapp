@@ -1,5 +1,20 @@
 # Histórico
 
+## 1.3.6 — 20/11/2026
+
+**A causa do "parou de sincronizar": sistema que só envia virava dono da conversa**
+- Visto em produção: o Smart Core (ligado como *atendimento*) mandou uma mensagem de teste a um contato e, pela
+  regra "quem responde fica com a conversa", virou o dono dela. Só que o Smart Core só ENVIA — nunca busca
+  mensagens. As respostas daquele contato passaram a ir só para a fila dele (44 eventos parados) e sumiram do
+  Prisma e do Serviços. Para quem olha, o WhatsApp "travou" depois que o sistema mandou o aviso.
+- Agora o conector reconhece o sistema que só envia: o do tipo **Avisos** e também o que está ligado como
+  atendimento há mais de 2 minutos e **nunca buscou mensagens**. Ele envia sem assumir a conversa, não é barrado
+  e não recebe lead. Conversa que já estava presa com um sistema assim é devolvida a todos na próxima mensagem.
+- O conector passou a guardar quando cada sistema buscou mensagens (`last_events_at`) e desde quando está ligado
+  (`paired_at`). A coluna **Última consulta** e o **Testar** usam a busca de mensagens — na 1.3.5 usavam o último
+  pedido qualquer e acusavam de "Parado" um sistema que só envia. Agora ele aparece como "Só envia" (e, se estiver
+  como atendimento, "Só envia · marque Avisos"); "Parado há X" fica só para quem buscava e deixou de buscar.
+
 ## 1.3.5 — 20/11/2026
 
 **"Depois de atualizar, para de sincronizar"**

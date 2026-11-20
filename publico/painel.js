@@ -345,10 +345,13 @@
   // parou (reiniciou e não voltou, perdeu a rede, foi desligado) — a fila dele cresce e as mensagens não aparecem lá.
   function consulta(a) {
     if (a.revoked_at || !a.paired) return '—';
-    if (!a.last_seen_at) return '<span class="selo qr">Nunca consultou</span>';
-    const seg = Math.max(0, Math.round((Date.now() - new Date(a.last_seen_at).getTime()) / 1000)); // o protocolo guarda em milissegundos
+    // 1.3.6: "consulta" é BUSCAR mensagens (last_events_at). Sistema que só envia (avisos, alertas) nunca busca —
+    // isso é normal e não é "parado".
+    if (!a.last_events_at) return a.tipo === 'avisos' ? '<span class="selo off" title="Conexão de avisos: envia e não recebe conversas">Só envia</span>'
+      : '<span class="selo qr" title="Este sistema nunca buscou mensagens. Se ele só envia avisos, marque Avisos. O conector já não entrega conversas a ele.">Só envia · marque Avisos</span>';
+    const seg = Math.max(0, Math.round((Date.now() - new Date(a.last_events_at).getTime()) / 1000)); // o protocolo guarda em milissegundos
     const ha = seg < 60 ? 'agora' : seg < 3600 ? 'há ' + Math.round(seg / 60) + ' min' : seg < 86400 ? 'há ' + Math.round(seg / 3600) + ' h' : 'há ' + Math.round(seg / 86400) + ' dia(s)';
-    return seg > 120 ? `<span class="selo erro" title="Última consulta em ${new Date(a.last_seen_at).toLocaleString('pt-BR')}">Parado ${ha}</span>` : `<span class="selo on">${ha}</span>`;
+    return seg > 120 ? `<span class="selo erro" title="Última busca de mensagens em ${new Date(a.last_events_at).toLocaleString('pt-BR')}">Parado ${ha}</span>` : `<span class="selo on">${ha}</span>`;
   }
   async function carregarAutorizacoes(m, id) {
     const alvo = $('[data-painel=sistemas]', m); alvo.innerHTML = 'Carregando…';
