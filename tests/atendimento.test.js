@@ -259,3 +259,20 @@ test('enquete, localização e contato: enviados pelo protocolo e conferidos', a
   // O texto de reserva é o que fica no histórico, para quem só mostra texto.
   assert.equal((await s.pub('GET', '/messages?to=5581999990010', null, c.token)).corpo.messages.length, 3);
 });
+
+test('fila de quem não consulta: rolante em vez de estourar, e evento parado 7 dias é descartado', async (t) => {
+  const s = await subir(pasta()); t.after(() => s.app.encerrar());
+  const id = await sessao(s), a = await conexao(s, id, 'Alfa'), b = await conexao(s, id, 'Beta');
+  await eventos(s, a); // a Alfa consulta; a Beta nunca consultou
+  const fila = async (c) => (await s.admin('GET', `/sessoes/${id}/autorizacoes`)).corpo.autorizacoes.find((x) => x.id === c.id).pending;
+  for (let i = 0; i < 520; i++) await msg(s, id, '55819999900' + (20 + (i % 9)), 'mensagem ' + i);
+  assert.ok(await fila(b) <= 500, 'a fila de quem não consulta para de crescer (rolante): ' + (await fila(b)));
+  assert.ok(await fila(a) > 500, 'quem consulta mantém a fila inteira até confirmar: ' + (await fila(a)));
+  // Evento parado há mais de 7 dias sai sozinho, nas duas.
+  // Pelo painel dá para esvaziar a fila de um sistema na hora.
+  assert.ok((await s.admin('POST', `/sessoes/${id}/autorizacoes/${b.id}/limpar-fila`)).corpo.removidos > 0);
+  assert.equal(await fila(b), 0);
+  assert.equal((await s.admin('POST', `/sessoes/${id}/autorizacoes/00000000-0000-4000-8000-000000000000/limpar-fila`)).status, 404);
+  s.app.sessoes.manutencao(Date.now() + 8 * 86400000);
+  assert.equal(await fila(a), 0, 'evento velho sai mesmo de quem consulta');
+});

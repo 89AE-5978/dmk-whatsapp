@@ -77,7 +77,12 @@ histórico para quem só mostra texto. Use **um** campo por envio, sem anexo:
 Formulários (Flows), catálogo e pedidos são da API oficial da Meta e não existem nesta biblioteca: não dá para
 enviar por aqui. Enquete, localização, contato, lista e botões são o que há.
 
-Eventos: `{ id, type, data, at }`. `message` traz `peer`, `phone`, `name`, `messageId`, `text`, `media`,
+Eventos: `{ id, type, data, at }`.
+
+Limites da fila de cada conexão: 1000 eventos (acima disso o envio é recusado com 503). Um sistema que não
+busca eventos há mais de 1 hora passa a ter **fila rolante**: ficam os 500 mais novos. Qualquer evento parado
+há mais de 7 dias é descartado. Em todos os casos as mensagens continuam no histórico da sessão
+(`GET /conversations` e `GET /messages`), que é por onde um sistema se recupera depois de ficar fora do ar. `message` traz `peer`, `phone`, `name`, `messageId`, `text`, `media`,
 `outgoing`, `timestamp`. `delivery` traz `messageId` e `status`.
 
 Regras que valem a pena saber:
@@ -111,6 +116,7 @@ quem for fazer uma tela. Dez chaves erradas seguidas do mesmo endereço bloqueia
 | `POST /sessoes/<id>/excluir` | `{ "confirmado": true }`. Apaga sessão, autorizações e fila. |
 | `GET /sessoes/<id>/autorizacoes` | Sistemas ligados à sessão. |
 | `POST /sessoes/<id>/autorizacoes` | `{ "nome", "sistema", "confirmado": true, "tipo"? }` → `code` (10 min, um uso). `tipo`: `atendimento` (padrão) ou `avisos`. |
+| `POST /sessoes/<id>/autorizacoes/<aid>/limpar-fila` | Descarta os eventos que esperam esse sistema (o histórico da sessão continua). |
 | `POST /sessoes/<id>/autorizacoes/<aid>/tipo` | `{ "tipo": "atendimento" \| "avisos" }` sem trocar a credencial. |
 | `POST /sessoes/<id>/autorizacoes/<aid>/revogar` | Corta o acesso na hora. |
 | `POST /sessoes/<id>/autorizacoes/<aid>/excluir` | Revoga e remove o cadastro. Revogar/excluir devolve as conversas dela para todos. |

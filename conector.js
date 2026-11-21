@@ -47,7 +47,7 @@ function criarServidor({ dataDir, chaveAdmin, fabricaMotor, simulado = false, lo
 
   async function admin(req, p, json) {
     exigirAdmin(req);
-    const b = req.method === 'POST' ? objeto(await corpo(req)) : {}, m = /^\/sessoes\/(\d+)(?:\/([a-z-]+)(?:\/([a-f0-9-]{36})\/([a-z]+))?)?$/.exec(p);
+    const b = req.method === 'POST' ? objeto(await corpo(req)) : {}, m = /^\/sessoes\/(\d+)(?:\/([a-z-]+)(?:\/([a-f0-9-]{36})\/([a-z-]+))?)?$/.exec(p);
     if (p === '/atualizacao' && req.method === 'GET') return json(await atualizacao.estado());
     if (p === '/atualizacao' && req.method === 'POST') return json(await atualizacao.pedir(), 202);
     if (p === '/sessoes' && req.method === 'GET') return json({ sessoes: sessoes.listar() });
@@ -78,6 +78,7 @@ function criarServidor({ dataDir, chaveAdmin, fabricaMotor, simulado = false, lo
     if (acao === 'autorizacoes' && sub === 'revogar') return json(sessoes.revogar(id, cid));
     if (acao === 'autorizacoes' && sub === 'excluir') return json(sessoes.removerAutorizacao(id, cid));
     if (acao === 'autorizacoes' && sub === 'tipo') return json(sessoes.tipoConexao(id, cid, b));
+    if (acao === 'autorizacoes' && sub === 'limpar-fila') return json(sessoes.limparFila(id, cid));
     // Só no modo simulado: faz o papel do celular e do WhatsApp para testar um sistema sem número real.
     if (simulado && acao === 'simular-leitura-qr') { sessoes.motor.lerQr(id, b.telefone); return json(sessoes.ver(id)); }
     if (simulado && acao === 'simular-mensagem') { await sessoes.motor.receber(id, b); return json({ ok: true }); }

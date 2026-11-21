@@ -1,5 +1,19 @@
 # Histórico
 
+## 1.3.13 — 21/11/2026
+
+**Fila de eventos não cresce mais sem limite**
+- Visto na VPS: a conexão de avisos do Smart Core tinha 43 eventos parados, porque ela nunca busca eventos.
+  Eram sobras de antes da 1.3.12 e recibos de entrega dos próprios avisos — nenhum sistema ia lê-los.
+- Agora a fila de quem não busca eventos há mais de 1 h é **rolante**: guarda os 500 mais novos e descarta os
+  antigos, em vez de encher até os 1000 e passar a recusar com "Fila do conector cheia". Nada se perde de
+  verdade: as mensagens ficam no histórico da sessão (`GET /messages`).
+- Qualquer evento parado há mais de **7 dias** é descartado, com o anexo, na faxina que já roda a cada 6 h.
+- Painel: a coluna **Fila** mostra numa dica a data do evento mais antigo, e cada conexão com fila ganhou o
+  botão **Esvaziar a fila** (`POST /admin/v1/sessoes/<id>/autorizacoes/<aid>/limpar-fila`).
+- O selo "Só envia · marque Avisos" virou "Só envia ⚠" (o recado completo ficou na dica), senão a linha não
+  cabia com o botão novo.
+
 ## 1.3.12 — 21/11/2026
 
 - **Etiqueta de atendimento em toda mensagem entregue** (`routing`): modo, situação (lead ou em atendimento),
