@@ -1,5 +1,14 @@
 # Histórico
 
+## 1.3.10 — 21/11/2026
+
+- **Resposta citada chegava sem a citação no celular.** O sistema mostrava o balão citado, o cliente recebia uma
+  mensagem comum. A mensagem original fica guardada com o endereço novo do WhatsApp (LID) e o envio vai para o
+  número; com endereços diferentes a biblioteca marcava a citação como "de outra conversa". Agora a citação usa o
+  mesmo endereço do envio.
+- Todo envio recusado pelo conector vai para o journal: `[envio recusado] "<conexão>" → <código>: <motivo>`,
+  sem o conteúdo. Antes só o sistema que enviou via a recusa.
+
 ## 1.3.9 — 21/11/2026
 
 Visto no teste da 1.3.8 na VPS (que confirmou a causa: 20 nós `<status>` pendentes foram confirmados e as mensagens

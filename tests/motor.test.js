@@ -196,3 +196,17 @@ test('sinal de recebimento: só fica "recebendo" quando o WhatsApp confirma as p
   assert.equal(runtimes.get(1).receiving, true);
   await motor.stop(conta);
 });
+
+test('resposta citada: a citação usa o endereço do envio (mensagem guardada pelo LID não vira "de outra conversa")', async () => {
+  const enviados = [];
+  const lib = bibliotecaFalsa({ enviar: async (jid, c, o) => { enviados.push({ jid, o }); return { key: { id: 'R' + enviados.length, remoteJid: jid, fromMe: true }, message: { conversation: c.text } }; } });
+  const runtimes = new Map(), motor = createBaileysManager({ runtimeMap: runtimes, authRoot: raiz(), loadModule: () => lib.modulo, onMessage: async () => {} });
+  await motor.start(conta); await conectado(runtimes);
+  lib.sockets[0].ev.emit('messages.upsert', { type: 'notify', messages: [{ key: { remoteJid: '123456@lid', remoteJidAlt: '5581999990001@s.whatsapp.net', id: 'ORIG1', fromMe: false }, message: { conversation: 'pergunta' } }] });
+  await esperar(50);
+  await motor.sendText(conta, '5581999990001', 'resposta', { replyToExternalId: 'ORIG1', replyQuote: { fromMe: false, body: 'pergunta' } });
+  const { jid, o } = enviados[0];
+  assert.equal(o.quoted.key.remoteJid, jid, 'mesmo endereço do envio');
+  assert.deepEqual([o.quoted.key.id, o.quoted.key.fromMe, o.quoted.message.conversation], ['ORIG1', false, 'pergunta']);
+  await motor.stop(conta);
+});
