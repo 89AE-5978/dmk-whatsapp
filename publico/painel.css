@@ -281,3 +281,5 @@ input[type=search]::-webkit-search-cancel-button { display: none; }
 .marca-filtro { flex: none; display: grid; place-items: center; width: 1.25rem; height: 1.25rem; border: 1.5px solid var(--borda-forte); border-radius: .35rem; color: transparent; background: var(--branco); }
 .marca-filtro svg { width: .85rem; height: .85rem; stroke-width: 3; }
 .opcao-filtro[aria-pressed=true] .marca-filtro { background: var(--azul); border-color: var(--azul); color: #fff; }
+.quadro-espaco { margin-top: .75rem; }
+.dmk-lista td.vazio { text-align: center; color: var(--fraco); padding: 1.1rem; }

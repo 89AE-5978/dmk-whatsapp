@@ -77,6 +77,12 @@ histórico para quem só mostra texto. Use **um** campo por envio, sem anexo:
 Formulários (Flows), catálogo e pedidos são da API oficial da Meta e não existem nesta biblioteca: não dá para
 enviar por aqui. Enquete, localização, contato, lista e botões são o que há.
 
+### Chatbot
+
+O conector responde sozinho quem ainda não tem atendente, pelo fluxo que cada sistema monta com a credencial
+que já tem (`GET/PUT /bot`, `POST /bot/ativar`, `GET /bot/estados`, `POST /bot/sair`, `GET /bot/modelos`).
+Tudo em [CHATBOT.md](CHATBOT.md).
+
 Eventos: `{ id, type, data, at }`.
 
 Limites da fila de cada conexão: 1000 eventos (acima disso o envio é recusado com 503). Um sistema que não

@@ -53,6 +53,8 @@ function criarServidor({ dataDir, chaveAdmin, fabricaMotor, simulado = false, lo
     if (p === '/sessoes' && req.method === 'GET') return json({ sessoes: sessoes.listar() });
     if (p === '/sessoes' && req.method === 'POST') return json(sessoes.criar(b), 201);
     // Atendimento: conversas da sessão, quem está atendendo, liberar/transferir e modo de distribuição.
+    const cb = /^\/sessoes\/(\d+)\/chatbot(\/estados)?$/.exec(p);
+    if (cb && req.method === 'GET') return json(cb[2] ? sessoes.chatbotEstados(cb[1]) : sessoes.chatbot(cb[1]));
     const at = /^\/sessoes\/(\d+)\/(atendimentos|distribuicao)(?:\/(liberar|transferir))?$/.exec(p);
     if (at) {
       const [, sid, rota, acaoAt] = at;
@@ -79,6 +81,7 @@ function criarServidor({ dataDir, chaveAdmin, fabricaMotor, simulado = false, lo
     if (acao === 'autorizacoes' && sub === 'excluir') return json(sessoes.removerAutorizacao(id, cid));
     if (acao === 'autorizacoes' && sub === 'tipo') return json(sessoes.tipoConexao(id, cid, b));
     if (acao === 'autorizacoes' && sub === 'limpar-fila') return json(sessoes.limparFila(id, cid));
+    if (acao === 'autorizacoes' && sub === 'bot') return json(sessoes.chatbotDefinir(id, cid, b));
     // Só no modo simulado: faz o papel do celular e do WhatsApp para testar um sistema sem número real.
     if (simulado && acao === 'simular-leitura-qr') { sessoes.motor.lerQr(id, b.telefone); return json(sessoes.ver(id)); }
     if (simulado && acao === 'simular-mensagem') { await sessoes.motor.receber(id, b); return json({ ok: true }); }
@@ -88,7 +91,8 @@ function criarServidor({ dataDir, chaveAdmin, fabricaMotor, simulado = false, lo
   // O protocolo foi escrito para uma sessão só. Aqui o pedido é lido uma vez, descobre-se de qual sessão é o
   // código ou a credencial, e só essa sessão o recebe. Uma credencial nunca alcança outra sessão.
   async function publico(req, p, json, res) {
-    const bruto = req.method === 'POST' ? await corpo(req) : Buffer.alloc(0);
+    // PUT entra junto com POST desde a 1.3.14: é como o sistema da empresa grava o fluxo do chatbot (PUT /bot).
+    const bruto = req.method === 'POST' || req.method === 'PUT' ? await corpo(req) : Buffer.alloc(0);
     let alvo;
     if (p === BASE + '/exchange' && req.method === 'POST') alvo = sessoes.sessaoDoCodigo(objeto(bruto).code);
     else alvo = sessoes.sessaoDaCredencial(String(req.headers.authorization || '').replace(/^Bearer /, ''));

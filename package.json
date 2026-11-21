@@ -1,6 +1,6 @@
 {
   "name": "dmk-whatsapp",
-  "version": "1.3.13",
+  "version": "1.3.14",
   "private": true,
   "description": "DMK WhatsApp - conector global de WhatsApp com várias sessões para os sistemas DMK",
   "main": "conector.js",

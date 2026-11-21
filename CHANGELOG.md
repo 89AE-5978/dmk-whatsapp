@@ -1,5 +1,25 @@
 # Histórico
 
+## 1.3.14 — 21/11/2026
+
+**Chatbot: atendimento automático por regras, um fluxo por conexão**
+- O conector responde sozinho quem ainda não tem atendente, pelo fluxograma que cada sistema monta com a
+  credencial que já tem. Assim que alguém assume a conversa — pelo sistema ou respondendo no próprio celular
+  do número — o robô para naquele contato.
+- Nós: `mensagem`, `pergunta`, `transferir`, `encerrar` e `acao` (consulta um endereço https do sistema da
+  empresa e segue pela resposta). Condições: número, igual, contém, começa, sim, não, lista de palavras,
+  anexo, e-mail, telefone e qualquer. Variáveis `{{nome}}`, `{{telefone}}`, `{{resposta}}` e o que o fluxo
+  guardar. Por nó: marcar como lida, "digitando…", atraso, citar a mensagem e botões ou lista.
+- Protege contra fluxo mal montado: até 100 nós, todo destino tem que existir, no máximo 12 passos por
+  mensagem, volta ao início depois de `inativo_min` parado e chama um atendente depois de `maximo_erros`.
+- Rotas novas para os sistemas: `GET/PUT /bot`, `POST /bot/ativar`, `GET /bot/estados`, `POST /bot/sair`,
+  `GET /bot/modelos`; evento `bot` para quem declara `X-DMK-Features: bot`.
+- Painel: aba **Chatbot** na ficha da sessão — liga, desliga, escolhe quem atende os contatos novos, copia um
+  modelo pronto e mostra em que etapa cada contato está, com o botão de tirar do fluxo.
+- Documentação: `docs/CHATBOT.md` (tudo o que o fluxo aceita) e `docs/PROMPT-CHATBOT.md` (prompt para os
+  agentes montarem a tela do fluxograma).
+- O protocolo passou a aceitar PUT nas rotas públicas (é como o fluxo é gravado).
+
 ## 1.3.13 — 21/11/2026
 
 **Fila de eventos não cresce mais sem limite**

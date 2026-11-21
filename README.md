@@ -18,6 +18,14 @@ Cada sessão é um número. Cada sistema/chat ligado a ela é uma **conexão**, 
 - Pelo painel (aba Atendimentos da sessão) dá para ver quem atende cada conversa, liberar, transferir e trocar
   o modo para "todos" (todas as conexões recebem tudo, como antes da 1.3.0).
 
+## Chatbot (atendimento automático)
+
+Cada sistema ligado pode montar um fluxograma de atendimento e o conector responde sozinho quem ainda não tem
+atendente — com "digitando…", confirmação de leitura, botões e lista. Assim que alguém assume a conversa (pelo
+sistema ou pelo próprio celular do número), o robô para naquele contato. O passo a passo e a API estão em
+[docs/CHATBOT.md](docs/CHATBOT.md); no painel, a aba **Chatbot** da sessão liga, desliga e mostra em que etapa
+cada contato está.
+
 ## O que o conector guarda
 
 | Onde | O quê |

@@ -229,14 +229,16 @@
       <div class="abas" role="tablist">
         <button class="aba" role="tab" aria-selected="true" data-aba="geral">Geral</button>
         <button class="aba" role="tab" aria-selected="false" data-aba="atendimentos">Atendimentos</button>
+        <button class="aba" role="tab" aria-selected="false" data-aba="chatbot">Chatbot</button>
         <button class="aba" role="tab" aria-selected="false" data-aba="sistemas">Sistemas ligados</button>
       </div>`, corpo: `
-      <div data-painel="geral"></div><div data-painel="atendimentos" hidden></div><div data-painel="sistemas" hidden></div>`, rodape: [] });
+      <div data-painel="geral"></div><div data-painel="atendimentos" hidden></div><div data-painel="chatbot" hidden></div><div data-painel="sistemas" hidden></div>`, rodape: [] });
     $$('.aba', m).forEach((a) => a.addEventListener('click', () => {
       $$('.aba', m).forEach((x) => x.setAttribute('aria-selected', String(x === a)));
       $$('[data-painel]', m).forEach((p) => p.hidden = p.dataset.painel !== a.dataset.aba);
       if (a.dataset.aba === 'sistemas') carregarAutorizacoes(m, id);
       if (a.dataset.aba === 'atendimentos') carregarAtendimentos(m, id, true);
+      if (a.dataset.aba === 'chatbot') carregarChatbot(m, id);
     }));
     desenharGeral(m, s);
     atualizarFichaAberta(id);
@@ -282,6 +284,7 @@
     const aba = $('.aba[aria-selected=true]', m)?.dataset.aba || 'geral';
     if (aba === 'geral') desenharGeral(m, s);
     if (aba === 'atendimentos') carregarAtendimentos(m, id, false);
+    if (aba === 'chatbot') carregarChatbot(m, id);
     const alvoQr = $('[data-qr]', m);
     if (alvoQr) alvoQr.innerHTML = s.status === 'AGUARDANDO_QR' && s.qr ? `<div class="quadro-qr"><img src="${s.qr}" alt="QR Code do WhatsApp" width="240" height="240"><p>No celular: WhatsApp → Aparelhos conectados → Conectar um aparelho, e aponte para este código. Ele é renovado sozinho enquanto não for lido.</p></div>` : '';
   }
@@ -380,6 +383,57 @@
     $$('[data-limpar-fila]', alvo).forEach((bt) => bt.addEventListener('click', () => confirmarPerigo('Esvaziar a fila', 'Os eventos que esperam este sistema são descartados e ele não vai recebê-los. As mensagens continuam no histórico da sessão.', async (bt2) => { await chamar('POST', `/sessoes/${id}/autorizacoes/${bt.dataset.limparFila}/limpar-fila`, null, bt2); carregarAutorizacoes(m, id); })));
     $$('[data-revogar]', alvo).forEach((bt) => bt.addEventListener('click', () => confirmarPerigo('Revogar acesso', 'O sistema para de ler e enviar por esta sessão na próxima consulta.', async (bt2) => { await chamar('POST', `/sessoes/${id}/autorizacoes/${bt.dataset.revogar}/revogar`, null, bt2); carregarAutorizacoes(m, id); carregar(); })));
     $$('[data-excluir-aut]', alvo).forEach((bt) => bt.addEventListener('click', () => confirmarPerigo('Excluir do histórico', 'A autorização sai da lista desta sessão. Se ainda estiver ativa, o acesso do sistema é cortado agora. O que o sistema já gravou do lado dele continua lá.', async (bt2) => { await chamar('POST', `/sessoes/${id}/autorizacoes/${bt.dataset.excluirAut}/excluir`, null, bt2); carregarAutorizacoes(m, id); carregar(); })));
+  }
+
+  // ---------- chatbot (atendimento automático por regras) ----------
+  // O fluxograma é desenhado no sistema de cada empresa, com a chave que ela já tem. Aqui o administrador
+  // liga/desliga, escolhe quem responde os contatos novos, copia um modelo pronto e acompanha as etapas.
+  const NOME_MODELO = { departamentos: 'Menu por departamento', fora_do_horario: 'Recado fora do horário' };
+  async function carregarChatbot(ficha, id) {
+    const alvo = $('[data-painel=chatbot]', ficha);
+    let dados, estados;
+    try { [dados, estados] = await Promise.all([api('GET', `/sessoes/${id}/chatbot`), api('GET', `/sessoes/${id}/chatbot/estados`)]); }
+    catch (e) { return avisar(e.message); }
+    const assinatura = JSON.stringify([dados, estados]);
+    if (alvo.dataset.assinatura === assinatura) return; // redesenha só quando muda
+    alvo.dataset.assinatura = assinatura;
+    const linhas = dados.conexoes.map((c) => `<tr>
+      <td class="contato"><b>${esc(c.label)}</b><small>${c.nos ? esc(c.nome || 'Fluxo') + ' · ' + c.nos + ' etapa(s)' : 'sem fluxo ainda'}</small></td>
+      <td><div class="grupo-bt seg">
+        <button class="bt bt-mini ${c.ativo ? 'bt-principal' : ''}" data-bot-ativo="${c.conexao}" data-valor="1" title="Ligar o atendimento automático desta conexão"${c.nos ? '' : ' disabled'}>Ligado</button>
+        <button class="bt bt-mini ${c.ativo ? '' : 'bt-principal'}" data-bot-ativo="${c.conexao}" data-valor="0" title="Desligar o atendimento automático">Desligado</button>
+      </div></td>
+      <td>${c.atende_novos ? '<span class="selo on">Atende novos</span>' : `<button class="bt bt-mini" data-bot-novos="${c.conexao}" title="Fazer esta conexão responder os contatos novos"${c.nos ? '' : ' disabled'}>Usar esta</button>`}</td>
+      <td class="num">${c.em_fluxo}</td>
+      <td><div class="grupo-bt"><button class="bt bt-mini bt-so-icone" data-bot-modelo="${c.conexao}" title="Copiar um fluxo pronto para esta conexão"><svg><use href="#i-copiar"/></svg></button></div></td>
+    </tr>`).join('');
+    alvo.innerHTML = `<div class="quadro"><table class="dmk-lista">
+        <thead><tr><th>Conexão</th><th>Situação</th><th>Contatos novos</th><th class="num">No fluxo</th><th></th></tr></thead>
+        <tbody>${linhas || '<tr><td colspan="5" class="vazio">Nenhum sistema ligado nesta sessão.</td></tr>'}</tbody></table></div>
+      <p class="nota">O fluxograma é montado no sistema de cada empresa, com a chave que ela já usa. Aqui você liga, desliga e acompanha.</p>
+      <div class="quadro quadro-espaco"><table class="dmk-lista">
+        <thead><tr><th>Contato no fluxo</th><th>Etapa</th><th>Desde</th><th></th></tr></thead>
+        <tbody>${estados.states.length ? estados.states.map((e) => `<tr>
+          <td>${esc(e.peer.split('@')[0])}</td><td><span class="selo qr">${esc(e.node)}</span></td>
+          <td>${new Date(e.since).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+          <td><div class="grupo-bt"><button class="bt bt-mini" data-bot-sair="${esc(e.peer)}" title="Tirar do fluxo e deixar para um atendente">Tirar do fluxo</button></div></td>
+        </tr>`).join('') : '<tr><td colspan="4" class="vazio">Ninguém sendo atendido pelo robô agora.</td></tr>'}</tbody></table></div>`;
+    const mandar = async (cid, corpo, bt) => { await chamar('POST', `/sessoes/${id}/autorizacoes/${cid}/bot`, corpo, bt); alvo.dataset.assinatura = ''; carregarChatbot(ficha, id); };
+    $$('[data-bot-ativo]', alvo).forEach((bt) => bt.addEventListener('click', () => mandar(bt.dataset.botAtivo, { ativo: bt.dataset.valor === '1' }, bt)));
+    $$('[data-bot-novos]', alvo).forEach((bt) => bt.addEventListener('click', () => mandar(bt.dataset.botNovos, { atende_novos: true }, bt)));
+    $$('[data-bot-modelo]', alvo).forEach((bt) => bt.addEventListener('click', () => escolherModelo(ficha, id, bt.dataset.botModelo, dados.modelos)));
+    $$('[data-bot-sair]', alvo).forEach((bt) => bt.addEventListener('click', () => confirmarPerigo('Tirar do fluxo', 'O contato sai do atendimento automático e fica esperando um atendente.', async (bt2) => {
+      await chamar('POST', `/sessoes/${id}/atendimentos/liberar`, { peer: bt.dataset.botSair }, bt2); alvo.dataset.assinatura = ''; carregarChatbot(ficha, id);
+    })));
+  }
+  function escolherModelo(ficha, id, cid, modelos) {
+    const m = abrirModal({ titulo: 'Copiar um fluxo pronto', estreito: true, corpo: `<p class="nota">O fluxo atual desta conexão é substituído. Depois dá para editar tudo no sistema da empresa.</p>
+      <div class="lista-escolha">${(modelos || []).map((x) => `<button class="bt" data-modelo="${esc(x)}"><svg><use href="#i-copiar"/></svg><span>${esc(NOME_MODELO[x] || x)}</span></button>`).join('')}</div>` });
+    $$('[data-modelo]', m).forEach((bt) => bt.addEventListener('click', async () => {
+      await chamar('POST', `/sessoes/${id}/autorizacoes/${cid}/bot`, { modelo: bt.dataset.modelo }, bt);
+      m.remove(); if (!$('.modal')) fundo.hidden = true;
+      $('[data-painel=chatbot]', ficha).dataset.assinatura = ''; carregarChatbot(ficha, id);
+    }));
   }
 
   // ---------- atendimentos (quem está atendendo cada conversa) ----------
