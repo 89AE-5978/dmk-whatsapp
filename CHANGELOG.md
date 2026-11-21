@@ -1,5 +1,10 @@
 # Histórico
 
+## 1.3.11 — 21/11/2026
+
+- Modo diagnóstico mostra a estrutura (só os nomes dos campos, nunca o conteúdo) de cada mensagem recebida e de
+  cada resposta citada enviada — para localizar por que a citação não aparece nos dois sentidos.
+
 ## 1.3.10 — 21/11/2026
 
 - **Resposta citada chegava sem a citação no celular.** O sistema mostrava o balão citado, o cliente recebia uma
