@@ -124,11 +124,16 @@
 
   // ---------- carregar / render ----------
   const ESTADOS = { CONECTADO: ['Conectado', 'on'], AGUARDANDO_QR: ['Aguardando QR', 'qr'], INICIANDO: ['Iniciando', 'qr'], RECONECTANDO: ['Reconectando', 'qr'], DESCONECTADO: ['Desconectado', 'off'], SUBSTITUIDA: ['Aberta em outro lugar', 'erro'], ERRO: ['Erro', 'erro'] };
+  // 1.3.8 — "Conectado" não garante recebimento: quando o conector sabe que o WhatsApp não está entregando
+  // mensagens a esta sessão (recebendo === false), o selo muda para "Conectado · sem receber".
+  const seloSessao = (s) => s.status === 'CONECTADO' && s.recebendo === false ? '<span class="selo erro" title="O WhatsApp não está entregando mensagens a este aparelho. Conectado, mas sem receber. Use Reiniciar.">Sem receber</span>' : selo(s.status);
+  // "há 5 min", "há 3 h", "há 2 d" — para ver de relance se a sessão parou de receber.
+  const haQuanto = (iso) => { const m = Math.max(0, Math.round((Date.now() - new Date(iso)) / 60000)); return m < 1 ? 'agora' : m < 60 ? `há ${m} min` : m < 2880 ? `há ${Math.round(m / 60)} h` : `há ${Math.round(m / 1440)} d`; };
   function selo(estado) { const [texto, classe] = ESTADOS[estado] || [estado, 'off']; return `<span class="selo ${classe}">${texto}</span>`; }
   function kpis() {
     const total = sessoes.length, conectadas = sessoes.filter((s) => s.status === 'CONECTADO').length;
     const sistemas = sessoes.reduce((n, s) => n + s.autorizacoes, 0), fila = sessoes.reduce((n, s) => n + s.eventos_pendentes, 0);
-    const erro = sessoes.filter((s) => s.erro).length;
+    const erro = sessoes.filter((s) => s.erro || (s.status === 'CONECTADO' && s.recebendo === false)).length;
     $('#kpis').innerHTML = [
       ['i-wifi', total, 'sessão(ões)'], ['i-fone', conectadas, 'conectada(s)'],
       ['i-chave', sistemas, 'sistema(s) ligado(s)'], ['i-fila', fila, 'evento(s) na fila'],
@@ -144,7 +149,7 @@
     kpis();
     const lista = linhas();
     $('#corpo').innerHTML = lista.map((s) => `<tr data-id="${s.id}">
-      <td class="id">${s.id}</td><td>${selo(s.status)}</td><td>${s.telefone || '—'}</td>
+      <td class="id">${s.id}</td><td>${seloSessao(s)}</td><td>${s.telefone || '—'}</td>
       <td>${esc(s.dono)}</td><td>${esc(s.nome)}</td><td class="num">${s.autorizacoes}</td><td class="num">${s.eventos_pendentes}</td>
     </tr>`).join('');
     $('#vazio').hidden = lista.length > 0;
@@ -248,16 +253,17 @@
     const painel = $('[data-painel=geral]', m);
     painel.innerHTML = `
       <div class="dados">
-        <div class="dado"><span>Estado</span>${selo(s.status)}</div>
+        <div class="dado"><span>Estado</span>${seloSessao(s)}</div>
         <div class="dado"><span>Número</span><b>${s.telefone || '—'}</b></div>
         <div class="dado"><span>Dono</span><b>${esc(s.dono)}</b></div>
         <div class="dado"><span>Criada em</span><b>${new Date(s.criada_em).toLocaleString('pt-BR')}</b></div>
-        <div class="dado"><span>Última mensagem</span><b>${s.ultima_recebida ? new Date(s.ultima_recebida).toLocaleString('pt-BR') : '—'}</b></div>
+        <div class="dado"><span>Última recebida</span><b title="${s.ultima_recebida ? new Date(s.ultima_recebida).toLocaleString('pt-BR') : ''}">${s.ultima_recebida ? haQuanto(s.ultima_recebida) : '—'}</b></div>
         <div class="dado"><span>Eventos na fila</span><b>${s.eventos_pendentes}</b></div>
         <div class="dado"><span>Distribuição</span><b title="${s.distribuicao === 'todos' ? 'Todas as conexões recebem tudo' : 'Lead aparece para todas; quem assume fica com a conversa'}">${s.distribuicao === 'todos' ? 'Todos' : 'Leads'}</b></div>
         <div class="dado"><span>Em atendimento · leads</span><b>${s.atendimentos ? s.atendimentos.em_atendimento + ' · ' + s.atendimentos.leads : '—'}</b></div>
       </div>
       ${s.erro ? `<p class="aviso perigo">${esc(s.erro)}</p>` : ''}
+      ${s.status === 'CONECTADO' && s.recebendo === false ? '<p class="aviso perigo">Conectado, mas o WhatsApp não está entregando mensagens a este aparelho. Use Reiniciar. Se continuar, será preciso parear de novo (Trocar número, com o mesmo celular).</p>' : ''}
       <div data-qr></div>
       <div class="grupo-bt grupo-rodape">
         ${s.ativa && s.status !== 'CONECTADO' ? '' : s.ativa

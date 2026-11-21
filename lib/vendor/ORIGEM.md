@@ -20,6 +20,9 @@ Estes quatro arquivos vieram de `dmksolutions/DMK-Prisma`, pasta `sistema/lib`, 
 - Código 440 (sessão substituída) para a sessão com estado `SUBSTITUIDA` em vez de reconectar em loop.
 - Envios da mesma sessão em fila, com `minSendIntervalMs`; dois envios sem resposta reabrem o socket.
 - `proto` exportado pelo normalizador do módulo.
+- (1.3.8) Confirma o nó `<status>` que o Baileys rc14 ignora (issue #2858), registra o motivo do `stream:error`
+  e vigia o "conectado sem receber" (`runtime.receiving`, reabertura do socket). Ao subir a biblioteca para uma
+  versão que já trate `<status>`, o tratador daqui se desliga sozinho (`listenerCount('CB:status')`).
 - 1.3.4: `messageText` usa `whatsapp-formatos.js` (mensagens de empresa em texto). O mesmo arquivo existe no DMK Prisma (`sistema/lib/whatsapp-formatos.js`, mod 1.523); manter os dois iguais.
 
 `dmk-chat-connector.js`:

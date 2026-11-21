@@ -197,3 +197,19 @@ test('sistema que só envia (1.3.6): ligado como atendimento mas nunca buscou me
   assert.match(teste.find((c) => c.nome === 'Sistemas que só enviam').detalhe, /SmartCore/);
   assert.equal(teste.find((c) => c.nome === 'Sistemas consultando').ok, true, 'quem só envia não é acusado de parado');
 });
+
+test('modo "todos": conexão de avisos não recebe conversa e a fila parada dela é limpa', async (t) => {
+  const s = await subir(pasta()); t.after(() => s.app.encerrar());
+  const id = await sessao(s), loja = await conexao(s, id, 'Loja'), iot = await conexao(s, id, 'IOT');
+  await s.admin('POST', `/sessoes/${id}/distribuicao`, { modo: 'todos' });
+  await eventos(s, loja); // a loja busca mensagens; o IOT ainda é "atendimento" recém-ligado e recebe
+  await msg(s, id, '5581999990006', 'primeira');
+  const fila = async (c) => (await s.admin('GET', `/sessoes/${id}/autorizacoes`)).corpo.autorizacoes.find((a) => a.id === c.id).pending;
+  assert.equal(await fila(iot), 1, 'antes de virar avisos, recebia');
+  await s.admin('POST', `/sessoes/${id}/autorizacoes/${iot.id}/tipo`, { tipo: 'avisos' });
+  await msg(s, id, '5581999990006', 'segunda');
+  assert.equal(await fila(iot), 0, 'não recebe a nova e a parada saiu da fila');
+  assert.deepEqual((await eventos(s, loja)).map(([, x]) => x), ['primeira', 'segunda']);
+  // O recibo de entrega do aviso que ela mesma mandou continua chegando.
+  assert.equal((await s.pub('POST', '/send', { to: '5581999990006', text: 'aviso', request_id: rid() }, iot.token)).status, 200);
+});

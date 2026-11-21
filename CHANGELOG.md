@@ -1,5 +1,28 @@
 # Histórico
 
+## 1.3.8 — 21/11/2026
+
+**"Conectado", mas nenhuma mensagem chega — e queda "Stream Errored (ack)" a cada ~50 minutos**
+- Causa (falha conhecida do Baileys 7.0.0-rc14, issue #2858, ainda sem correção publicada lá): o WhatsApp passou a
+  mandar o status (story) dos contatos num nó `<status>` solto e a biblioteca não tem tratador para ele — nunca
+  confirma. O servidor fica esperando a confirmação, **segura as mensagens novas** da sessão e uns 50 minutos depois
+  derruba a conexão. Ao reconectar ele reenvia o mesmo `<status>` e o ciclo recomeça. Envio continua funcionando,
+  por isso o estado ficava "Conectado".
+- Correção: o motor confirma o nó `<status>` na hora (sem ler o conteúdo). Se uma versão futura da biblioteca já
+  trouxer o tratador, o nosso não é registrado.
+- Quando o WhatsApp derruba o stream, o journal agora diz o motivo completo (`motivo=ack classe=status tipo=media`).
+- "Conectado" deixou de ser tratado como garantia de recebimento: o motor espera o sinal do servidor de que as
+  pendências foram entregues. Sem esse sinal (nem mensagem alguma) em 90 s, reabre só o socket, sem QR — no máximo
+  2 vezes seguidas. O resumo da sessão ganhou `recebendo` (true / false / null = ainda conferindo).
+- Painel: selo **Sem receber** (na lista e na ficha, com a orientação), o cartão **Última recebida** mostra há
+  quanto tempo ("há 3 h"; a data completa aparece ao passar o mouse) e o **Testar** ganhou "Canal de recebimento".
+
+**Fila de quem só envia (Avisos)**
+- No modo "todos" a conexão de Avisos recebia todas as conversas; como ela nunca lê, a fila só crescia até o limite
+  de 1000. Agora, nos dois modos, quem só envia não recebe eventos de conversa — só os recibos de entrega dos
+  avisos que ele mesmo mandou — e os eventos de conversa que já estavam parados na fila dele são retirados
+  (nada se perde: as mensagens estão no histórico da sessão e nos outros sistemas).
+
 ## 1.3.7 — 20/11/2026
 
 - Painel, diálogo **Filtros**: as caixas de marcar do navegador saíam gigantes e desalinhadas (herdavam o estilo

@@ -98,6 +98,10 @@ quem for fazer uma tela. Dez chaves erradas seguidas do mesmo endereço bloqueia
 | `POST /sessoes/<id>/atendimentos/transferir` | `{ "peer", "para": "<ID da conexão>" }`. |
 | `POST /sessoes/<id>/distribuicao` | `{ "modo": "leads" \| "todos" }`. |
 
+O resumo da sessão traz `recebendo`: `true` quando o WhatsApp confirmou a entrega de mensagens a este aparelho
+nesta conexão, `false` quando está conectado há mais de 90 s sem esse sinal (o painel mostra "Sem receber") e
+`null` enquanto confere ou quando não está conectado. `CONECTADO` sozinho não garante recebimento.
+
 Estados da sessão: `DESCONECTADO`, `INICIANDO`, `AGUARDANDO_QR`, `CONECTADO`, `RECONECTANDO`, `ERRO` e
 `SUBSTITUIDA` — a mesma credencial foi aberta em outro lugar (código 440: outra VPS, cópia da pasta `dados`,
 serviço duplicado). O conector para essa sessão em vez de brigar em loop com a outra cópia; desligue a cópia

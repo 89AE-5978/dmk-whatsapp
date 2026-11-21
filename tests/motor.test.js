@@ -20,7 +20,7 @@ function bibliotecaFalsa({ enviar } = {}) {
     sockets,
     modulo: {
       makeWASocket(opcoes) {
-        const sock = { ev: new EventEmitter(), opcoes, user: { id: '5581911110000:1@s.whatsapp.net' }, encerrado: null,
+        const sock = { ev: new EventEmitter(), ws: new EventEmitter(), nos: [], sendNode: async function (n) { this.nos.push(n); }, opcoes, user: { id: '5581911110000:1@s.whatsapp.net' }, encerrado: null,
           onWhatsApp: async (n) => [{ exists: true, jid: n + '@s.whatsapp.net' }],
           sendMessage: enviar || (async (jid, conteudo) => ({ key: { id: 'ID' + Math.random().toString(16).slice(2), remoteJid: jid, fromMe: true }, message: { conversation: conteudo.text } })),
           end(e) { this.encerrado = e; } };
@@ -171,4 +171,28 @@ test('trocar número/excluir (1.3.5): credencial que vai ser apagada não é reg
   const antes = credsSalvas;
   await motor.stop(conta, { deleteAuth: true });
   assert.equal(credsSalvas, antes);
+});
+
+test('nó <status> (story de contato) é confirmado na hora — sem isso o WhatsApp segura as mensagens e derruba em ~50 min', async () => {
+  const lib = bibliotecaFalsa(), runtimes = new Map();
+  const motor = createBaileysManager({ runtimeMap: runtimes, authRoot: raiz(), loadModule: () => lib.modulo });
+  await motor.start(conta); await conectado(runtimes);
+  const sock = lib.sockets[0];
+  sock.ws.emit('CB:status', { tag: 'status', attrs: { id: '3A20ABC', from: '5581999990001@s.whatsapp.net', type: 'media', participant: '5581999990001:3@s.whatsapp.net', t: '1' } });
+  await esperar(20);
+  assert.deepEqual(sock.nos, [{ tag: 'ack', attrs: { id: '3A20ABC', to: '5581999990001@s.whatsapp.net', class: 'status', participant: '5581999990001:3@s.whatsapp.net', type: 'media' } }]);
+  sock.ws.emit('CB:status', { tag: 'status', attrs: {} }); await esperar(10);
+  assert.equal(sock.nos.length, 1, 'nó sem id não gera confirmação');
+  await motor.stop(conta);
+});
+
+test('sinal de recebimento: só fica "recebendo" quando o WhatsApp confirma as pendências ou entrega mensagem', async () => {
+  const lib = bibliotecaFalsa(), runtimes = new Map();
+  const motor = createBaileysManager({ runtimeMap: runtimes, authRoot: raiz(), loadModule: () => lib.modulo });
+  await motor.start(conta); await conectado(runtimes);
+  assert.ok(!runtimes.get(1).receiving, 'conectado ainda não é recebendo');
+  lib.sockets[0].ev.emit('connection.update', { receivedPendingNotifications: true });
+  await esperar(10);
+  assert.equal(runtimes.get(1).receiving, true);
+  await motor.stop(conta);
 });
