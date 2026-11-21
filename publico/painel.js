@@ -389,6 +389,8 @@
   // O fluxograma é desenhado no sistema de cada empresa, com a chave que ela já tem. Aqui o administrador
   // liga/desliga, escolhe quem responde os contatos novos, copia um modelo pronto e acompanha as etapas.
   const NOME_MODELO = { departamentos: 'Menu por departamento', fora_do_horario: 'Recado fora do horário' };
+  // Em que pé está cada contato: dentro do fluxograma, em espera (o robô fica calado) ou com atendente.
+  const FASE = { fluxo: ['', 'qr'], aguardando: ['Esperando atendente', 'off'], humano: ['Com atendente', 'on'], fim: ['Encerrado · em carência', 'off'] };
   async function carregarChatbot(ficha, id) {
     const alvo = $('[data-painel=chatbot]', ficha);
     let dados, estados;
@@ -412,12 +414,22 @@
         <tbody>${linhas || '<tr><td colspan="5" class="vazio">Nenhum sistema ligado nesta sessão.</td></tr>'}</tbody></table></div>
       <p class="nota">O fluxograma é montado no sistema de cada empresa, com a chave que ela já usa. Aqui você liga, desliga e acompanha.</p>
       <div class="quadro quadro-espaco"><table class="dmk-lista">
-        <thead><tr><th>Contato no fluxo</th><th>Etapa</th><th>Desde</th><th></th></tr></thead>
-        <tbody>${estados.states.length ? estados.states.map((e) => `<tr>
-          <td>${esc(e.peer.split('@')[0])}</td><td><span class="selo qr">${esc(e.node)}</span></td>
+        <thead><tr><th>Contato</th><th>Situação</th><th>Desde</th><th></th></tr></thead>
+        <tbody>${estados.states.length ? estados.states.map((e) => { const [rotulo, cor] = FASE[e.phase] || FASE.fluxo; return `<tr>
+          <td>${esc(e.peer.split('@')[0])}</td>
+          <td><span class="selo ${cor}">${esc(rotulo || 'Etapa ' + (e.node || '—'))}</span></td>
           <td>${new Date(e.since).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
-          <td><div class="grupo-bt"><button class="bt bt-mini" data-bot-sair="${esc(e.peer)}" title="Tirar do fluxo e deixar para um atendente">Tirar do fluxo</button></div></td>
-        </tr>`).join('') : '<tr><td colspan="4" class="vazio">Ninguém sendo atendido pelo robô agora.</td></tr>'}</tbody></table></div>`;
+          <td><div class="grupo-bt">
+            ${e.phase === 'fluxo' ? `<button class="bt bt-mini" data-bot-sair="${esc(e.peer)}" title="Tirar do fluxo e deixar para um atendente">Tirar do fluxo</button>` : ''}
+            <button class="bt bt-mini bt-perigo" data-bot-ignorar="${esc(e.peer)}" title="Este contato nunca mais passa pelo robô">Nunca atender</button>
+          </div></td>
+        </tr>`; }).join('') : '<tr><td colspan="4" class="vazio">Ninguém sendo atendido pelo robô agora.</td></tr>'}</tbody></table></div>
+      ${estados.ignored.length ? `<div class="quadro quadro-espaco"><table class="dmk-lista">
+        <thead><tr><th>Nunca atender pelo robô</th><th>Desde</th><th></th></tr></thead>
+        <tbody>${estados.ignored.map((x) => `<tr><td>${esc(x.peer.split('@')[0])}</td>
+          <td>${new Date(x.since).toLocaleString('pt-BR', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' })}</td>
+          <td><div class="grupo-bt"><button class="bt bt-mini" data-bot-voltar="${esc(x.peer)}" title="Voltar a atender este contato pelo robô">Voltar a atender</button></div></td>
+        </tr>`).join('')}</tbody></table></div>` : ''}`;
     const mandar = async (cid, corpo, bt) => { await chamar('POST', `/sessoes/${id}/autorizacoes/${cid}/bot`, corpo, bt); alvo.dataset.assinatura = ''; carregarChatbot(ficha, id); };
     $$('[data-bot-ativo]', alvo).forEach((bt) => bt.addEventListener('click', () => mandar(bt.dataset.botAtivo, { ativo: bt.dataset.valor === '1' }, bt)));
     $$('[data-bot-novos]', alvo).forEach((bt) => bt.addEventListener('click', () => mandar(bt.dataset.botNovos, { atende_novos: true }, bt)));
@@ -425,6 +437,9 @@
     $$('[data-bot-sair]', alvo).forEach((bt) => bt.addEventListener('click', () => confirmarPerigo('Tirar do fluxo', 'O contato sai do atendimento automático e fica esperando um atendente.', async (bt2) => {
       await chamar('POST', `/sessoes/${id}/atendimentos/liberar`, { peer: bt.dataset.botSair }, bt2); alvo.dataset.assinatura = ''; carregarChatbot(ficha, id);
     })));
+    const marcar = async (peer, ativo, bt) => { await chamar('POST', `/sessoes/${id}/chatbot/ignorar`, { peer, ativo }, bt); alvo.dataset.assinatura = ''; carregarChatbot(ficha, id); };
+    $$('[data-bot-ignorar]', alvo).forEach((bt) => bt.addEventListener('click', () => confirmarPerigo('Nunca atender pelo robô', 'Este contato deixa de passar pelo atendimento automático. As mensagens dele continuam chegando normalmente para os atendentes.', (bt2) => marcar(bt.dataset.botIgnorar, true, bt2))));
+    $$('[data-bot-voltar]', alvo).forEach((bt) => bt.addEventListener('click', () => marcar(bt.dataset.botVoltar, false, bt)));
   }
   function escolherModelo(ficha, id, cid, modelos) {
     const m = abrirModal({ titulo: 'Copiar um fluxo pronto', estreito: true, corpo: `<p class="nota">O fluxo atual desta conexão é substituído. Depois dá para editar tudo no sistema da empresa.</p>
