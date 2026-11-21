@@ -1,5 +1,15 @@
 # Histórico
 
+## 1.3.12 — 21/11/2026
+
+- **Etiqueta de atendimento em toda mensagem entregue** (`routing`): modo, situação (lead ou em atendimento),
+  quem assumiu e se é o próprio sistema. O chat passa a saber na hora se mostra "Assumir" ou "Finalizar", sem
+  consultar nada. Quem decide continua sendo o conector; a etiqueta só conta a decisão.
+- **Envio de enquete, localização e cartão de contato** (`POST /send` com `native`), nos formatos oficiais da
+  biblioteca. O voto do cliente na enquete volta como mensagem de texto legível. Lista e botões (`interactive`,
+  desde a 1.3.4) seguem como experimentais. Formulários (Flows), catálogo e pedidos são exclusivos da API
+  oficial da Meta e não existem nesta biblioteca.
+
 ## 1.3.11 — 21/11/2026
 
 - Modo diagnóstico mostra a estrutura (só os nomes dos campos, nunca o conteúdo) de cada mensagem recebida e de

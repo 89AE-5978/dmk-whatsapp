@@ -39,6 +39,12 @@ async function eventos(s, c) {
   if (r.events.length) assert.equal((await s.pub('POST', '/ack', { ids: r.events.map((e) => e.id) }, c.token)).status, 200);
   return r.events.map((e) => [e.type, e.type === 'message' ? e.data.text : e.type === 'delivery' ? e.data.status : e.data.mine ?? e.data.peer]);
 }
+// Etiqueta de atendimento (routing) de cada mensagem entregue.
+async function etiquetas(s, c) {
+  const r = (await s.pub('GET', '/events', null, c.token)).corpo;
+  if (r.events.length) await s.pub('POST', '/ack', { ids: r.events.map((e) => e.id) }, c.token);
+  return r.events.filter((e) => e.type === 'message').map((e) => e.data.routing);
+}
 const msg = (s, id, de, texto, extra = {}) => s.admin('POST', `/sessoes/${id}/simular-mensagem`, { de, nome: 'Cliente', texto, id: 'M' + crypto.randomBytes(6).toString('hex').toUpperCase(), ...extra });
 
 test('lead vai para todas as conexões; quem responde assume e as outras deixam de ver', async (t) => {
@@ -221,4 +227,35 @@ test('mensagem reentregue pelo WhatsApp (mesmo ID) não duplica no histórico ne
   for (let i = 0; i < 2; i++) await s.admin('POST', `/sessoes/${id}/simular-mensagem`, { de: '5581999990007', nome: 'Rita', texto: 'uma vez só', id: 'REPETIDA0001' });
   assert.deepEqual((await eventos(s, loja)).map(([, x]) => x), ['uma vez só']);
   assert.deepEqual((await s.pub('GET', '/messages?to=5581999990007', null, loja.token)).corpo.messages.map((m) => m.texto), ['uma vez só']);
+});
+
+test('toda mensagem entregue traz a etiqueta de atendimento (lead, quem assumiu, se é minha)', async (t) => {
+  const s = await subir(pasta()); t.after(() => s.app.encerrar());
+  const id = await sessao(s), loja = await conexao(s, id, 'Loja'), oficina = await conexao(s, id, 'Oficina');
+  await eventos(s, loja); await eventos(s, oficina);
+  await msg(s, id, '5581999990008', 'lead novo');
+  assert.deepEqual(await etiquetas(s, loja), [{ mode: 'leads', state: 'NOVO', owner: null, mine: false }]);
+  assert.deepEqual(await etiquetas(s, oficina), [{ mode: 'leads', state: 'NOVO', owner: null, mine: false }]);
+  await s.pub('POST', '/claim', { to: '5581999990008' }, loja.token);
+  await eventos(s, loja); await eventos(s, oficina);
+  await msg(s, id, '5581999990008', 'agora é da loja');
+  const [tag] = await etiquetas(s, loja);
+  assert.deepEqual([tag.state, tag.mine, tag.owner.label], ['EM_ATENDIMENTO', true, 'Loja']);
+  assert.deepEqual(await etiquetas(s, oficina), [], 'a oficina não recebe mais');
+  await s.admin('POST', `/sessoes/${id}/distribuicao`, { modo: 'todos' });
+  await msg(s, id, '5581999990008', 'modo todos');
+  assert.deepEqual((await etiquetas(s, oficina))[0], { mode: 'todos', state: 'TODOS', owner: null, mine: false });
+});
+
+test('enquete, localização e contato: enviados pelo protocolo e conferidos', async (t) => {
+  const s = await subir(pasta()); t.after(() => s.app.encerrar());
+  const id = await sessao(s), c = await conexao(s, id, 'Loja');
+  const enviar = (native, text = 'reserva em texto') => s.pub('POST', '/send', { to: '5581999990010', text, native, request_id: rid() }, c.token);
+  assert.equal((await enviar({ type: 'poll', name: 'Qual horário?', options: ['Manhã', 'Tarde'] })).status, 200);
+  assert.equal((await enviar({ type: 'location', lat: -8.28, lng: -35.97, name: 'Loja' })).status, 200);
+  assert.equal((await enviar({ type: 'contact', name: 'Suporte', phone: '5587991797853' })).status, 200);
+  const ruim = await enviar({ type: 'poll', name: 'x', options: ['só uma'] });
+  assert.equal(ruim.status, 400); assert.match(ruim.corpo.error, /native inválido/);
+  // O texto de reserva é o que fica no histórico, para quem só mostra texto.
+  assert.equal((await s.pub('GET', '/messages?to=5581999990010', null, c.token)).corpo.messages.length, 3);
 });

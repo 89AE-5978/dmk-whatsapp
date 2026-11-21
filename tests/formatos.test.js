@@ -53,3 +53,28 @@ assert.equal(F.NOS_ENVIO[0].tag,'biz');assert.equal(F.NOS_ENVIO[0].content[0].co
 // o que mandamos, se voltar para nós, é lido pelo mesmo leitor (ida e volta)
 assert.deepEqual(F.estrutura(F.conteudoEnvio(b3).viewOnceMessage.message),{tipo:'interativa',corpo:'Escolha',opcoes:[{rotulo:'Sim',tipo:'resposta'},{rotulo:'Não',tipo:'resposta'}]});
 });
+
+// ---- 1.3.12: enquete, localização e contato ----
+test('envio nativo: enquete, localização e contato são conferidos e montados', () => {
+  const F = require('../lib/vendor/whatsapp-formatos');
+  assert.equal(F.limparNativo({ type: 'poll', name: 'Qual horário?', options: ['Manhã', 'Tarde', 'Manhã'] }).options.length, 2, 'opções repetidas saem');
+  assert.equal(F.limparNativo({ type: 'poll', name: 'x', options: ['só uma'] }), null, 'enquete precisa de 2 opções');
+  assert.equal(F.limparNativo({ type: 'poll', name: '', options: ['a', 'b'] }), null);
+  assert.deepEqual(F.conteudoNativo(F.limparNativo({ type: 'poll', name: 'Horário', options: ['Manhã', 'Tarde'], multiple: true })), { poll: { name: 'Horário', values: ['Manhã', 'Tarde'], selectableCount: 0 } });
+  assert.equal(F.conteudoNativo(F.limparNativo({ type: 'poll', name: 'H', options: ['a', 'b'] })).poll.selectableCount, 1, 'sem multiple: escolhe uma');
+  assert.deepEqual(F.conteudoNativo(F.limparNativo({ type: 'location', lat: -8.28, lng: -35.97, name: 'Loja DMK' })).location, { degreesLatitude: -8.28, degreesLongitude: -35.97, name: 'Loja DMK' });
+  assert.equal(F.limparNativo({ type: 'location', lat: 200, lng: 0 }), null);
+  const c = F.conteudoNativo(F.limparNativo({ type: 'contact', name: 'Suporte DMK', phone: '+55 (87) 9179-7853' }));
+  assert.match(c.contacts.contacts[0].vcard, /FN:Suporte DMK\nTEL;type=CELL;type=VOICE;waid=558791797853:\+558791797853/);
+  assert.equal(F.limparNativo({ type: 'contact', name: 'x', phone: '123' }), null);
+  assert.equal(F.limparNativo({ type: 'outra' }), null);
+});
+
+test('voto em enquete vira texto com as opções escolhidas', () => {
+  const F = require('../lib/vendor/whatsapp-formatos'), crypto = require('node:crypto');
+  const enquete = { name: 'Qual horário?', options: [{ optionName: 'Manhã' }, { optionName: 'Tarde' }] };
+  const h = (t) => crypto.createHash('sha256').update(t).digest();
+  assert.equal(F.textoVoto(enquete, [h('Tarde')], crypto), 'Enquete "Qual horário?": Tarde');
+  assert.equal(F.textoVoto(enquete, [h('Manhã'), h('Tarde')], crypto), 'Enquete "Qual horário?": Manhã, Tarde');
+  assert.equal(F.textoVoto(enquete, [], crypto), 'Enquete "Qual horário?": retirou o voto');
+});

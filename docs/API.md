@@ -45,16 +45,37 @@ Tipo), em `POST /admin/v1/sessoes/<id>/autorizacoes` com `"tipo": "avisos"` ou e
 | Método e caminho | Entrada / resultado |
 |---|---|
 | `GET /routing` | `{ mode: "leads" \| "todos", connection: { id, label } }` — o ID desta conexão. |
+| `POST /send` com `native` | Enquete, localização ou cartão de contato (ver abaixo). |
 | `POST /claim` | `{ "to" }` → assume a conversa. 409 se outra conexão já atende. |
 | `POST /release` | `{ "to" }` → finaliza: a conversa volta a ser lead para todas. Só quem atende. |
 | `GET /conversations` | Leads + conversas desta conexão (nunca as de outra): `peer`, `phone`, `name`, `state` (`NOVO`, `EM_ATENDIMENTO`, `FINALIZADO`), `owner`, `mine`, `last_at`, `last_text`. |
 | `GET /messages?to=&before=&limit=` | Histórico guardado no conector (até 200 por vez): `id`, `de` (`cliente`, `sistema`, `celular`), `texto`, `arquivo`, `em`. 409 se outra conexão atende. |
 | `GET /file?path=` | Bytes de um anexo do histórico (`arquivo.caminho`). Só da pasta geral ou da própria conexão. |
 
+Desde a 1.3.12 **toda mensagem entregue traz o campo `routing`**, para o chat saber na hora se precisa mostrar
+"Assumir" ou "Finalizar", sem outra consulta: `{ mode: "leads" | "todos", state: "NOVO" | "EM_ATENDIMENTO" |
+"TODOS", owner: { id, label } | null, mine: true | false }`. `mine: true` é conversa deste sistema; `state:
+"NOVO"` é lead (ninguém assumiu). Quem não conhece o campo simplesmente o ignora.
+
 Envie `X-DMK-Features: routing` (junto com `actions`, se usar) no `GET /events` para receber também:
 `assigned` — `{ peer, phone, owner: { id, label }, mine }` (alguém assumiu; se `mine` for falso, tire a
 conversa da tela) — e `released` — `{ peer }` (finalizada; volta a ser lead). Sistemas antigos não recebem
 esses eventos: para eles basta que as mensagens da conversa de outro parem de chegar.
+
+### Formatos que o WhatsApp aceita no envio (`POST /send`)
+
+`text` continua obrigatório e é a **reserva**: é o que vai se o formato não puder ser enviado, e é o que fica no
+histórico para quem só mostra texto. Use **um** campo por envio, sem anexo:
+
+| Campo | Conteúdo | Observação |
+|---|---|---|
+| `native: { type: "poll", name, options[2..12], multiple? }` | Enquete | Formato oficial da biblioteca. O voto do cliente volta como mensagem de texto (`Enquete "...": opção`), enquanto a enquete estiver guardada (7 dias). |
+| `native: { type: "location", lat, lng, name?, address? }` | Localização | Formato oficial. |
+| `native: { type: "contact", name, phone }` | Cartão de contato | Formato oficial. `phone` só com dígitos, com DDI. |
+| `interactive: { style: "list" \| "buttons", body, footer?, button?, items[] }` | Lista ou botões | **Experimental**: o WhatsApp não garante esse formato fora da API oficial e pode não aparecer em alguns aparelhos. Botões: até 3, rótulo de até 20 letras; acima disso vira lista (até 10 linhas). Teste com o seu número antes de usar com clientes. |
+
+Formulários (Flows), catálogo e pedidos são da API oficial da Meta e não existem nesta biblioteca: não dá para
+enviar por aqui. Enquete, localização, contato, lista e botões são o que há.
 
 Eventos: `{ id, type, data, at }`. `message` traz `peer`, `phone`, `name`, `messageId`, `text`, `media`,
 `outgoing`, `timestamp`. `delivery` traz `messageId` e `status`.
