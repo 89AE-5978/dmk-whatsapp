@@ -1,5 +1,16 @@
 # Histórico
 
+## 1.3.9 — 21/11/2026
+
+Visto no teste da 1.3.8 na VPS (que confirmou a causa: 20 nós `<status>` pendentes foram confirmados e as mensagens
+retidas chegaram todas de uma vez):
+- Mensagem reentregue pelo WhatsApp depois da reconexão (mesmo ID, uma vez pelo número e outra pelo LID) era
+  gravada duas vezes no histórico da sessão e contada duas vezes como recebida. Os sistemas já não recebiam a
+  repetição; agora o histórico também não.
+- Journal mais limpo: mensagens de controle da própria conta (`protocolMessage` de sincronização entre aparelhos)
+  geravam um aviso "formato não tratado" por mensagem, e cópias de envios de outro aparelho que não abriam eram
+  contadas como falha de recebimento. Nenhuma das duas é mensagem de cliente — saem sem aviso e sem contar.
+
 ## 1.3.8 — 21/11/2026
 
 **"Conectado", mas nenhuma mensagem chega — e queda "Stream Errored (ack)" a cada ~50 minutos**

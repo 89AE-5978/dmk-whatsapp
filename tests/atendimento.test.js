@@ -213,3 +213,12 @@ test('modo "todos": conexão de avisos não recebe conversa e a fila parada dela
   // O recibo de entrega do aviso que ela mesma mandou continua chegando.
   assert.equal((await s.pub('POST', '/send', { to: '5581999990006', text: 'aviso', request_id: rid() }, iot.token)).status, 200);
 });
+
+test('mensagem reentregue pelo WhatsApp (mesmo ID) não duplica no histórico nem nos sistemas', async (t) => {
+  const s = await subir(pasta()); t.after(() => s.app.encerrar());
+  const id = await sessao(s), loja = await conexao(s, id, 'Loja');
+  await eventos(s, loja);
+  for (let i = 0; i < 2; i++) await s.admin('POST', `/sessoes/${id}/simular-mensagem`, { de: '5581999990007', nome: 'Rita', texto: 'uma vez só', id: 'REPETIDA0001' });
+  assert.deepEqual((await eventos(s, loja)).map(([, x]) => x), ['uma vez só']);
+  assert.deepEqual((await s.pub('GET', '/messages?to=5581999990007', null, loja.token)).corpo.messages.map((m) => m.texto), ['uma vez só']);
+});
