@@ -53,8 +53,9 @@ function criarServidor({ dataDir, chaveAdmin, fabricaMotor, simulado = false, lo
     if (p === '/sessoes' && req.method === 'GET') return json({ sessoes: sessoes.listar() });
     if (p === '/sessoes' && req.method === 'POST') return json(sessoes.criar(b), 201);
     // Atendimento: conversas da sessão, quem está atendendo, liberar/transferir e modo de distribuição.
-    const cb = /^\/sessoes\/(\d+)\/chatbot(\/estados)?$/.exec(p);
-    if (cb && req.method === 'GET') return json(cb[2] ? sessoes.chatbotEstados(cb[1]) : sessoes.chatbot(cb[1]));
+    const cb = /^\/sessoes\/(\d+)\/chatbot(?:\/(estados|ignorar))?$/.exec(p);
+    if (cb && cb[2] === 'ignorar' && req.method === 'POST') return json(sessoes.chatbotIgnorar(cb[1], b));
+    if (cb && req.method === 'GET') return json(cb[2] === 'estados' ? sessoes.chatbotEstados(cb[1]) : sessoes.chatbot(cb[1]));
     const at = /^\/sessoes\/(\d+)\/(atendimentos|distribuicao)(?:\/(liberar|transferir))?$/.exec(p);
     if (at) {
       const [, sid, rota, acaoAt] = at;

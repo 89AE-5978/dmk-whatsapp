@@ -1,5 +1,22 @@
 # Histórico
 
+## 1.3.15 — 21/11/2026
+
+**O robô não responde de novo a cada "oi"**
+- Mesma mensagem repetida em poucos segundos (`antiflood_seg`, 10 s) é ignorada: não repete o menu e não
+  conta como resposta errada — antes três "oi" seguidos empurravam o cliente até a transferência.
+- Depois de transferir, o contato fica em espera (`aguardando_min`, 60 min): enquanto nenhum atendente
+  assume, o robô não manda mais nada naquela conversa.
+- Depois de encerrar, ou quando uma pessoa atende, começa uma carência (`repetir_apos_min`, 120 min) antes
+  de o contato poder entrar no fluxo de novo. Tudo configurável por fluxo; `0` desliga a espera.
+- `GET /bot/estados` mostra só quem está no fluxograma; com `?todas=1` vem também quem está em espera, com o
+  campo `phase` (`fluxo`, `aguardando`, `humano`, `fim`).
+
+**Contato que nunca passa pelo robô**
+- `POST /bot/ignorar { to, ativo }` e `GET /bot/ignorados`; no painel, "Nunca atender" e "Voltar a atender"
+  na aba Chatbot; pela administração, `POST /admin/v1/sessoes/<id>/chatbot/ignorar`.
+- As mensagens desse contato continuam chegando para os atendentes: só o robô fica de fora.
+
 ## 1.3.14 — 21/11/2026
 
 **Chatbot: atendimento automático por regras, um fluxo por conexão**

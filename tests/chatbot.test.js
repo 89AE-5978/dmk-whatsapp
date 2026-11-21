@@ -200,3 +200,70 @@ test('nó de ação: consulta o sistema da empresa e segue pela resposta dele', 
   assert.equal(textos(s).at(-1), 'Não consegui consultar agora, vou chamar um atendente.', 'falha na ação cai no caminho de erro');
   assert.equal(recebido, null);
 });
+
+// ---------- 1.3.15: o robô não responde de novo a cada "oi" ----------
+const comEspera = (extra) => ({ ...FLUXO, config: { ...FLUXO.config, ...extra } });
+
+test('mesmo "oi" repetido não faz o robô mandar o menu de novo (anti-repetição)', async (t) => {
+  const s = await subir(); t.after(() => s.app.encerrar());
+  const loja = await s.conectar('Loja');
+  await s.pub('PUT', '/bot', { fluxo: comEspera({ antiflood_seg: 30 }), ativo: true, atende_novos: true }, loja.token);
+  await s.cliente('oi'); await s.cliente('oi'); await s.cliente('oi');
+  assert.deepEqual(textos(s), ['Olá Marta! 1 - Suporte  2 - Financeiro'], 'o menu saiu uma vez só');
+  // Com o anti-repetição desligado, volta a repetir (é opção de quem monta o fluxo).
+  const outra = await subir(); t.after(() => outra.app.encerrar());
+  const l2 = await outra.conectar('Loja');
+  await outra.pub('PUT', '/bot', { fluxo: comEspera({ antiflood_seg: 0 }), ativo: true, atende_novos: true }, l2.token);
+  await outra.cliente('oi'); await outra.cliente('oi');
+  assert.deepEqual(textos(outra), ['Olá Marta! 1 - Suporte  2 - Financeiro', 'Não entendi.', 'Olá Marta! 1 - Suporte  2 - Financeiro'],
+    'sem anti-repetição o segundo "oi" vira resposta errada e o menu volta');
+});
+
+test('depois de encerrar, o contato fica em carência e o robô só volta quando o tempo vence', async (t) => {
+  const s = await subir(); t.after(() => s.app.encerrar());
+  const loja = await s.conectar('Loja');
+  await s.pub('PUT', '/bot', { fluxo: comEspera({ repetir_apos_min: 60 }), ativo: true, atende_novos: true }, loja.token);
+  await s.cliente('oi'); await s.cliente('2'); // 2 = financeiro -> mensagem -> encerrar
+  assert.deepEqual(textos(s).slice(-2), ['Setor financeiro, um instante.', 'Obrigado!']);
+  const estado = (todas) => s.pub('GET', '/bot/estados' + (todas ? '?todas=1' : ''), null, loja.token);
+  assert.deepEqual((await estado()).corpo.states, [], 'saiu do fluxograma');
+  assert.equal((await estado(true)).corpo.states[0].phase, 'fim', 'mas o conector lembra que já atendeu');
+  const antes = textos(s).length;
+  await s.cliente('oi de novo');
+  assert.equal(textos(s).length, antes, 'dentro da carência o robô fica calado');
+  // Com a carência zerada, o mesmo contato é atendido de novo.
+  await s.pub('PUT', '/bot', { fluxo: comEspera({ repetir_apos_min: 0 }), ativo: true, atende_novos: true }, loja.token);
+  await s.cliente('oi');
+  assert.equal(textos(s).at(-1), 'Olá Marta! 1 - Suporte  2 - Financeiro', 'passado o tempo, atende de novo');
+});
+
+test('esperando atendente: o robô não manda mais nada naquela conversa', async (t) => {
+  const s = await subir(); t.after(() => s.app.encerrar());
+  const loja = await s.conectar('Loja');
+  await s.pub('PUT', '/bot', { fluxo: comEspera({ aguardando_min: 120 }), ativo: true, atende_novos: true }, loja.token);
+  await s.cliente('oi'); await s.cliente('atendente');
+  assert.equal(textos(s).at(-1), 'Chamando um atendente.');
+  const antes = textos(s).length;
+  await s.cliente('oi?'); await s.cliente('alguém aí?');
+  assert.equal(textos(s).length, antes, 'fica calado esperando o atendente');
+  const esperando = (await s.pub('GET', '/bot/estados?todas=1', null, loja.token)).corpo.states[0];
+  assert.equal(esperando.phase, 'aguardando');
+});
+
+test('contato na lista de nunca atender: o robô ignora, e dá para voltar atrás', async (t) => {
+  const s = await subir(); t.after(() => s.app.encerrar());
+  const loja = await s.conectar('Loja');
+  await s.pub('PUT', '/bot', { fluxo: FLUXO, ativo: true, atende_novos: true }, loja.token);
+  assert.equal((await s.pub('POST', '/bot/ignorar', { to: '5581999990001' }, loja.token)).corpo.ignorado, true);
+  await s.cliente('oi');
+  assert.deepEqual(textos(s), [], 'contato ignorado não entra no fluxo');
+  assert.equal((await s.pub('GET', '/bot/ignorados', null, loja.token)).corpo.ignored.length, 1);
+  // Outro contato continua sendo atendido normalmente.
+  await s.cliente('oi', '5581999990055');
+  assert.equal(textos(s).length, 1);
+  // Pelo painel dá para ignorar e para voltar a atender.
+  assert.equal((await s.admin('POST', `/sessoes/${s.id}/chatbot/ignorar`, { peer: '5581999990001', ativo: false })).corpo.ignorado, false);
+  await s.cliente('oi');
+  assert.equal(textos(s).length, 2, 'voltou a ser atendido');
+  assert.equal((await s.admin('GET', `/sessoes/${s.id}/chatbot/estados`)).corpo.ignored.length, 0);
+});

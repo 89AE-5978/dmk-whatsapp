@@ -48,7 +48,10 @@ terminou e a conversa é com um humano agora.
     "maximo_erros": 2,
     "palavra_atendente": ["atendente", "humano"],
     "ir_atendente": "",
-    "texto_transferencia": "Certo! Já estou chamando um atendente."
+    "texto_transferencia": "Certo! Já estou chamando um atendente.",
+    "repetir_apos_min": 120,
+    "aguardando_min": 60,
+    "antiflood_seg": 10
   },
   "nos": {
     "menu": {
@@ -74,6 +77,39 @@ terminou e a conversa é com um humano agora.
   }
 }
 ```
+
+### Para o robô não responder de novo a cada "oi"
+
+O conector guarda em que pé ficou cada contato, e isso decide se ele volta a ser atendido:
+
+| Situação | O que o robô faz |
+|---|---|
+| Está no meio do fluxograma | Segue normalmente. |
+| Mandou a MESMA mensagem de novo em menos de `antiflood_seg` | Ignora: não repete o menu e não conta como resposta errada. |
+| Foi transferido e espera um atendente | Fica calado por `aguardando_min` minutos. |
+| O fluxo terminou, ou um atendente atendeu | Fica calado por `repetir_apos_min` minutos (carência). |
+| Está na lista de "nunca atender" | Nunca entra no fluxo. |
+
+| Config | Padrão | Para que serve |
+|---|---|---|
+| `repetir_apos_min` | 120 | Minutos de carência depois de encerrar ou de ser atendido por uma pessoa. `0` desliga. |
+| `aguardando_min` | 60 | Minutos de silêncio enquanto o contato espera um atendente assumir. |
+| `antiflood_seg` | 10 | Segundos em que a mesma mensagem repetida é ignorada. |
+| `inativo_min` | 30 | Parado esse tempo no meio do fluxo, o contato recomeça do início. |
+
+`GET /bot/estados` mostra só quem está dentro do fluxograma; com `?todas=1` vem também quem está em espera,
+com o campo `phase`: `fluxo`, `aguardando`, `humano` ou `fim`.
+
+### Nunca atender um contato
+
+| Método e caminho | O que faz |
+|---|---|
+| `POST /bot/ignorar` | `{ to, ativo }` — `ativo: true` tira o contato do robô para sempre; `false` desfaz. |
+| `GET /bot/ignorados` | Lista dos contatos marcados. |
+
+No painel, os mesmos botões ficam na aba Chatbot ("Nunca atender" e "Voltar a atender"), e pela administração
+em `POST /admin/v1/sessoes/<id>/chatbot/ignorar { peer, ativo }`. As mensagens desse contato continuam
+chegando normalmente para os atendentes: o que muda é só o robô não responder.
 
 ### Tipos de nó
 
