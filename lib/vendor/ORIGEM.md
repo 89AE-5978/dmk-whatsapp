@@ -30,6 +30,12 @@ Estes quatro arquivos vieram de `dmksolutions/DMK-Prisma`, pasta `sistema/lib`, 
   responder/agir, rotas `/claim`, `/release`, `/conversations`, `/messages`, `/file`, `/routing`.
 - `notify()` (eventos `assigned`/`released` para quem declara `routing`) e `grantById()`.
 - Erro definitivo no envio libera o `request_id` em vez de deixá-lo "incerto" para sempre.
+- 1.3.16: `media.voz` (mensagem de voz) repassado ao motor; mimetype com parâmetro (`audio/ogg; codecs=opus`)
+  aceito; `voz`, `figurinha` e `segundos` no `media` entregue ao sistema.
+
+`whatsapp-baileys.js` (1.3.16):
+- `sendMedia(..., { voz: true })` envia áudio com `ptt: true` (mensagem de voz); sem a opção segue `ptt: false`.
+- `mediaDescriptor` marca `voz` (áudio gravado), `figurinha` (sticker) e `segundos` (duração).
 
 Por que copiar em vez de reescrever: o site (`conector.py`) e os PDVs do Prisma já falam este protocolo
 e ele já tem testes no Prisma. Usando o mesmo código, o conector global responde igual à Central.

@@ -1,5 +1,24 @@
 # Histórico
 
+## 1.3.16 — 22/11/2026
+
+**Documentação completa da API** — `docs/API.md` foi reescrita como referência profissional: gateways e
+portas, começar em 5 passos com `curl`, cada evento com seus campos, **cada formato de envio com exemplo
+pronto** (texto, citação, imagem, vídeo, documento, áudio, mensagem de voz, localização, contato, enquete,
+lista e botões), tabela de limites, o que fazer com cada código de erro, rotas de administração, logs,
+as proteções contra travamento e a lista do que a API **não** faz (Flows, catálogo, pedidos, grupos).
+
+**Mensagem de voz**
+- `POST /send` com `media: { ..., "voz": true }` manda áudio como gravação de voz (aquela bolha com o play
+  e a onda). Sem a marca, áudio continua indo como arquivo — nada muda para quem já enviava.
+- `audio/ogg; codecs=opus` passou a ser aceito (antes o mimetype com parâmetro era recusado com 400).
+- Áudio e figurinha recebidos vêm marcados: `media.voz`, `media.figurinha` e `media.segundos`, para o chat
+  desenhar a bolha certa sem adivinhar pelo nome do arquivo.
+
+**Mais log**
+- Uma linha por envio aceito no journal: `[sessao N] enviando texto|voz|image/jpeg|poll|list para ...9399`
+  (formato e quatro últimos dígitos, sem o conteúdo da mensagem).
+
 ## 1.3.15 — 21/11/2026
 
 **O robô não responde de novo a cada "oi"**
