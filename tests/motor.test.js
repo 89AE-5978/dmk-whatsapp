@@ -210,3 +210,24 @@ test('resposta citada: a citação usa o endereço do envio (mensagem guardada p
   assert.deepEqual([o.quoted.key.id, o.quoted.key.fromMe, o.quoted.message.conversation], ['ORIG1', false, 'pergunta']);
   await motor.stop(conta);
 });
+
+test('áudio: arquivo por padrão, mensagem de voz (ptt) com voz:true; recebido marca voz/duração', async () => {
+  const enviados = [];
+  const lib = bibliotecaFalsa({ enviar: async (jid, conteudo) => { enviados.push(conteudo); return { key: { id: 'ID' + enviados.length, remoteJid: jid, fromMe: true }, message: {} }; } });
+  const runtimes = new Map();
+  const motor = createBaileysManager({ runtimeMap: runtimes, authRoot: raiz(), loadModule: () => lib.modulo });
+  await motor.start(conta); await conectado(runtimes);
+  const arquivo = path.join(raiz(), 'a.ogg'); fs.writeFileSync(arquivo, Buffer.from('audio'));
+  await motor.sendMedia(conta, '5581911112222', arquivo, 'audio/ogg; codecs=opus', 'a.ogg', '');
+  await motor.sendMedia(conta, '5581911112222', arquivo, 'audio/ogg; codecs=opus', 'a.ogg', '', { voz: true });
+  assert.equal(enviados[0].ptt, false, 'sem voz:true vai como arquivo de áudio');
+  assert.equal(enviados[1].ptt, true, 'com voz:true vai como mensagem de voz');
+  // recebido: o chat precisa saber que é voz (bolha do play) e quanto tempo tem
+  const recebidas = [];
+  const motor2 = createBaileysManager({ runtimeMap: new Map(), authRoot: raiz(), loadModule: () => lib.modulo, onMessage: async (c, m) => recebidas.push(m) });
+  const r2 = await motor2.start({ ...conta, id: 2, client_key: 'sessao-2' });
+  for (let i = 0; i < 100 && r2.status !== 'CONECTADO'; i++) await esperar(10);
+  lib.sockets[1].ev.emit('messages.upsert', { type: 'notify', messages: [{ key: { id: 'V1', remoteJid: '5581911112222@s.whatsapp.net', fromMe: false }, message: { audioMessage: { mimetype: 'audio/ogg; codecs=opus', ptt: true, seconds: 7 } }, messageTimestamp: 1 }] });
+  for (let i = 0; i < 100 && !recebidas.length; i++) await esperar(10);
+  assert.equal(recebidas[0]?.media?.voz, true); assert.equal(recebidas[0]?.media?.segundos, 7);
+});

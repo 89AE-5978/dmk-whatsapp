@@ -22,7 +22,13 @@ de todos os sistemas DMK. Cada **sessão** é um número de WhatsApp. Cada siste
 **autorização** numa sessão e passa a ler e responder as conversas daquele número.
 
 Repositório e documentação: `https://github.com/89AE-5978/dmk-whatsapp`
-(`docs/API.md` tem a referência completa, `docs/LIGAR-UM-SISTEMA.md` tem exemplos).
+
+**Antes de escrever qualquer linha de código, leia `docs/API.md` do repositório — inteira.** Ela é a
+referência completa da API: gateways, credencial, eventos com todos os campos, **todos os formatos de
+envio com exemplo pronto** (texto, citação, imagem, vídeo, documento, áudio, mensagem de voz,
+localização, cartão de contato, enquete, lista e botões), limites, o que fazer com cada código de erro,
+logs e o que a API **não** faz. Não invente rota nem formato: o que não está lá, não existe.
+Depois dela, `docs/LIGAR-UM-SISTEMA.md` (exemplos por sistema) e `docs/CHATBOT.md` (automação).
 
 ## Divisão de responsabilidades (não misture)
 
