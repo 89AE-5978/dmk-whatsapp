@@ -24,6 +24,8 @@ const AJUDA = `DMK WhatsApp - administração do conector
   dmk-wa liberar <id> <telefone>             devolve a conversa para todas as conexões (lead de novo)
   dmk-wa distribuicao <id> leads|todos       leads: quem assume fica com a conversa; todos: todo mundo recebe tudo
   dmk-wa conferir                            confere a biblioteca do WhatsApp instalada e abre uma conexão de teste (QR)
+  dmk-wa atualizar [--verificar]             traz a versão nova do GitHub (com backup e volta automática);
+                                             --verificar só diz se há versão nova, sem alterar nada
 `;
 async function api(metodo, caminho, corpo) {
   let chave;
@@ -81,7 +83,22 @@ async function principal([comando, ...args]) {
     case 'liberar': exigirId(); await api('POST', `/admin/v1/sessoes/${id}/atendimentos/liberar`, { peer: args[1] }); console.log('Conversa devolvida para todas as conexões.'); break;
     case 'distribuicao': exigirId(); { const s = await api('POST', `/admin/v1/sessoes/${id}/distribuicao`, { modo: args[1] }); console.log(`Sessão ${s.id}: distribuição "${s.distribuicao}".`); } break;
     case 'conferir': { const r = require('node:child_process').spawnSync(process.execPath, [path.join(__dirname, 'conferir-baileys.js'), '--qr'], { stdio: 'inherit', cwd: RAIZ }); process.exitCode = r.status; break; }
-    default: console.log(AJUDA);
+    // 1.3.18: atualizar pelo próprio comando. Antes só existia o script (e o botão do painel), então
+    // "dmk-wa atualizar" caía na ajuda e parecia ter funcionado.
+    case 'atualizar': {
+      const script = path.join(RAIZ, 'instalar', 'atualizar.sh');
+      if (!fs.existsSync(script)) throw Error(`Não encontrei ${script}. Atualize pelo painel ou refaça a instalação.`);
+      if (args.length && args[0] !== '--verificar') throw Error('Use: dmk-wa atualizar [--verificar]');
+      const r = require('node:child_process').spawnSync('bash', [script, ...args], { stdio: 'inherit', cwd: RAIZ });
+      process.exitCode = r.status === null ? 1 : r.status; break;
+    }
+    // Comando errado não pode sair como sucesso: senão um "dmk-wa comando-errado && dmk-wa status"
+    // imprime a ajuda, segue em frente e parece que deu certo.
+    default:
+      if (comando && comando !== 'ajuda' && comando !== '--help' && comando !== '-h') {
+        console.error(`ERRO: comando desconhecido: ${comando}\n`); console.error(AJUDA); process.exitCode = 1; break;
+      }
+      console.log(AJUDA);
   }
 }
 principal(process.argv.slice(2)).catch((e) => { console.error('ERRO: ' + e.message); process.exit(1); });

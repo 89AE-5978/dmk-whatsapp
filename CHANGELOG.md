@@ -1,5 +1,17 @@
 # Histórico
 
+## 1.3.18 — 22/11/2026
+
+**`dmk-wa atualizar`** — atualizar deixou de depender de decorar o caminho do script:
+
+- `dmk-wa atualizar` traz a versão nova do GitHub (com backup e volta automática, como sempre) e
+  `dmk-wa atualizar --verificar` só diz se há versão nova, sem alterar nada. O script
+  `instalar/atualizar.sh` continua existindo e fazendo o trabalho.
+- **Comando errado agora sai com erro**, em vez de imprimir a ajuda e sair como sucesso. Antes, um
+  `dmk-wa comando-que-nao-existe && dmk-wa status` imprimia a ajuda, seguia em frente e parecia ter
+  funcionado — foi exatamente o que aconteceu com `dmk-wa atualizar`, que não existia.
+- Ajuda do comando atualizada; `docs/INSTALACAO.md` mostra o comando curto primeiro.
+
 ## 1.3.17 — 22/11/2026
 
 **Cara nova: o conector de mensagens agora é verde**

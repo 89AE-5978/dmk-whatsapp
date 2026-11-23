@@ -71,8 +71,15 @@ Nos sistemas DMK, informe só o domínio, sem caminho e sem porta.
 ## Atualizar
 
 ```bash
-bash /opt/dmk-whatsapp/instalar/atualizar.sh --verificar   # só diz se há versão nova
-bash /opt/dmk-whatsapp/instalar/atualizar.sh               # atualiza
+dmk-wa atualizar --verificar   # só diz se há versão nova, não altera nada
+dmk-wa atualizar               # atualiza (backup e volta automática se algo não subir)
+```
+
+O comando é um atalho para o script, que também pode ser chamado direto:
+
+```bash
+bash /opt/dmk-whatsapp/instalar/atualizar.sh --verificar
+bash /opt/dmk-whatsapp/instalar/atualizar.sh
 ```
 
 O atualizador guarda um backup (`backups/antes-da-atualizacao.tar.gz`, sempre o mesmo arquivo), troca o
