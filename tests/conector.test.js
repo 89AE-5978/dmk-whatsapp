@@ -35,7 +35,9 @@ async function sessaoPronta(s, nome, dono, telefone) {
 test('administração exige a chave e o /health não entrega nada sensível', async (t) => {
   const s = await subir(pasta()); t.after(() => s.app.encerrar());
   const h = await s.pedir('GET', '/health');
-  assert.deepEqual(Object.keys(h.corpo).sort(), ['ativas', 'conectadas', 'node', 'ok', 'servico', 'sessoes', 'simulado', 'versao']);
+  // 1.3.17: além dos números, o /health carrega o aviso de direitos e a biblioteca usada — nada sensível.
+  assert.deepEqual(Object.keys(h.corpo).sort(), ['ativas', 'conectadas', 'direitos', 'lib', 'node', 'ok', 'servico', 'sessoes', 'simulado', 'versao']);
+  assert.match(h.corpo.direitos, /Danilo Silva dos Santos/); assert.match(h.corpo.lib, /Baileys/);
   assert.equal((await s.pedir('GET', '/admin/v1/sessoes')).status, 401);
   assert.equal((await s.pedir('GET', '/admin/v1/sessoes', null, 'a'.repeat(64))).status, 401);
   assert.equal((await s.admin('GET', '/sessoes')).status, 200);

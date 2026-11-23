@@ -26,13 +26,29 @@ test('painel: serve os arquivos certos e nada além deles', async (t) => {
   assert.equal((await fetch(url + '/painel/', { method: 'POST' })).status, 405);
   // 1.3.5: ícone da aba e manifesto (cor da barra / instalar como aplicativo)
   const icone = await fetch(url + '/painel/icone.svg'); assert.equal(icone.status, 200); assert.equal(icone.headers.get('content-type'), 'image/svg+xml');
-  const manifesto = await fetch(url + '/painel/app.webmanifest'); assert.equal(manifesto.status, 200); assert.equal((await manifesto.json()).theme_color, '#0b2447');
-  const pagina = await (await fetch(url + '/painel/')).text(); assert.match(pagina, /rel="icon" type="image\/svg\+xml" href="\/painel\/icone\.svg"/); assert.match(pagina, /rel="manifest"/); assert.match(pagina, /name="theme-color" content="#0b2447"/);
+  const manifesto = await fetch(url + '/painel/app.webmanifest'); assert.equal(manifesto.status, 200); assert.equal((await manifesto.json()).theme_color, '#0a3b23');
+  const pagina = await (await fetch(url + '/painel/')).text(); assert.match(pagina, /rel="icon" type="image\/svg\+xml" href="\/painel\/icone\.svg"/); assert.match(pagina, /rel="manifest"/); assert.match(pagina, /name="theme-color" content="#0a3b23"/);
   const head = await fetch(url + '/painel/painel.js', { method: 'HEAD' }); assert.equal(head.status, 200); assert.equal((await head.text()).length, 0);
 });
 
 test('painel: /health não exige a chave de administrador', async (t) => {
   const { app, url } = await subir(); t.after(() => app.encerrar());
   const r = await fetch(url + '/health'); assert.equal(r.status, 200);
-  const j = await r.json(); assert.deepEqual(Object.keys(j).sort(), ['ativas', 'conectadas', 'node', 'ok', 'servico', 'sessoes', 'simulado', 'versao']);
+  const j = await r.json(); assert.deepEqual(Object.keys(j).sort(), ['ativas', 'conectadas', 'direitos', 'lib', 'node', 'ok', 'servico', 'sessoes', 'simulado', 'versao']);
+});
+
+// 1.3.17: identidade verde e os direitos do autor visíveis no painel (não some numa mexida de tela).
+test('painel: identidade verde, logotipo de conversa e os direitos na tela', async (t) => {
+  const { app, url } = await subir(); t.after(() => app.encerrar());
+  const pagina = await (await fetch(url + '/painel/')).text();
+  assert.match(pagina, /id="btDireitos"/, 'botão dos direitos no topo');
+  assert.match(pagina, /id="btDireitosEntrada"/, 'link dos direitos na tela de entrada');
+  assert.match(pagina, /Danilo Silva dos Santos · DMK Soluções/, 'autoria na tela de entrada');
+  const css = await (await fetch(url + '/painel/painel.css')).text();
+  assert.match(css, /--marca: #0e8a46/, 'paleta verde');
+  assert.doesNotMatch(css, /--azul|#1268ed/, 'nada do tema azul antigo');
+  const icone = await (await fetch(url + '/painel/icone.svg')).text();
+  assert.match(icone, /#0e8a46|#39d989/, 'ícone verde');
+  const js = await (await fetch(url + '/painel/painel.js')).text();
+  assert.match(js, /Baileys/, 'crédito da biblioteca no cartão de direitos');
 });

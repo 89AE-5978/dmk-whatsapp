@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b2447">
+<meta name="theme-color" content="#0a3b23">
 <title>DMK WhatsApp — conector</title>
 <meta name="color-scheme" content="light">
 <meta name="application-name" content="DMK WhatsApp">
@@ -14,7 +14,9 @@
 <body>
 <!-- Ícones: um desenho só, usado em todo o painel. Nada vem de fora. -->
 <svg hidden aria-hidden="true"><defs>
-<symbol id="i-marca" viewBox="0 0 24 24"><path d="M12 3 20 9.5 16.5 20h-9L4 9.5z"/><path d="M12 3v17M4 9.5h16"/></symbol>
+<symbol id="i-marca" viewBox="0 0 24 24"><path d="M20.5 11.2c0 4.3-3.8 7.8-8.5 7.8-1 0-2-.2-2.9-.5L4.2 20l1.3-3.7A7.5 7.5 0 0 1 3.5 11.2C3.5 6.9 7.3 3.4 12 3.4s8.5 3.5 8.5 7.8z"/><circle cx="8.6" cy="11.2" r="1.05" fill="currentColor" stroke="none"/><circle cx="12" cy="11.2" r="1.05" fill="currentColor" stroke="none"/><circle cx="15.4" cy="11.2" r="1.05" fill="currentColor" stroke="none"/></symbol>
+<symbol id="i-escudo" viewBox="0 0 24 24"><path d="M12 3.2 5 5.8v5.4c0 4.2 2.9 7.6 7 9.6 4.1-2 7-5.4 7-9.6V5.8z"/><path d="m9 12 2.2 2.2L15.2 10"/></symbol>
+<symbol id="i-vazio" viewBox="0 0 96 64"><path d="M66 18h20a5 5 0 0 1 5 5v14a5 5 0 0 1-5 5h-3l-8 6v-6h-9a5 5 0 0 1-5-5V23a5 5 0 0 1 5-5z" opacity=".45"/><path d="M11 8h44a5 5 0 0 1 5 5v20a5 5 0 0 1-5 5H30l-10 7v-7h-9a5 5 0 0 1-5-5V13a5 5 0 0 1 5-5z" fill="var(--branco)"/><circle cx="25" cy="23" r="2.5" fill="currentColor" stroke="none"/><circle cx="33" cy="23" r="2.5" fill="currentColor" stroke="none"/><circle cx="41" cy="23" r="2.5" fill="currentColor" stroke="none"/></symbol>
 <symbol id="i-wifi" viewBox="0 0 24 24"><path d="M5 12.5a10 10 0 0 1 14 0M8 16a6 6 0 0 1 8 0"/><circle cx="12" cy="19.5" r="1.3" fill="currentColor" stroke="none"/></symbol>
 <symbol id="i-fone" viewBox="0 0 24 24"><rect x="6" y="2.5" width="12" height="19" rx="2.5"/><path d="M10.5 18.5h3"/></symbol>
 <symbol id="i-play" viewBox="0 0 24 24"><path d="M7 4.5 19 12 7 19.5z"/></symbol>
@@ -39,22 +41,25 @@
   <form class="cartao-entrada" id="formEntrada" autocomplete="off">
     <div class="logo"><svg><use href="#i-marca"/></svg></div>
     <h1>DMK WhatsApp</h1>
-    <p class="sub">Conector global de WhatsApp — painel de administração</p>
+    <p class="sub">Conector de mensagens · painel de administração</p>
     <label for="chave">Chave de administrador</label>
     <input id="chave" type="password" spellcheck="false" placeholder="64 caracteres" required>
     <p class="ajuda">A chave fica na VPS — copie o comando e rode no terminal dela:</p>
     <div class="codigo"><input readonly id="cmdChave" value="cat /opt/dmk-whatsapp/dados/admin.key" spellcheck="false" aria-label="Comando para ver a chave de administrador"><button type="button" class="bt bt-icone" id="btCopiarComando" title="Copiar comando"><svg><use href="#i-copiar"/></svg></button></div>
     <button class="bt bt-principal" type="submit">Entrar</button>
+    <p class="direitos">© 2026 Danilo Silva dos Santos · DMK Soluções — uso sob autorização.
+      <button type="button" class="elo" id="btDireitosEntrada">Direitos, termos e privacidade</button></p>
   </form>
 </section>
 
 <!-- Tela fixa: só a lista rola. -->
 <main id="tela" class="tela" hidden>
   <header class="topo">
-    <div class="marca"><div class="logo"><svg><use href="#i-marca"/></svg></div><div><strong>DMK WhatsApp</strong><small>Conector global · painel de administração</small></div><span class="ponto" id="pontoServico"></span><span class="versao" id="versao"></span></div>
+    <div class="marca"><div class="logo"><svg><use href="#i-marca"/></svg></div><div><strong>DMK WhatsApp</strong><small>Conector de mensagens · painel de administração</small></div><span class="ponto" id="pontoServico"></span><span class="versao" id="versao"></span></div>
     <div class="grupo-bt">
       <button class="bt bt-icone" id="btAtualizar" title="Atualizar a lista agora"><svg><use href="#i-girar"/></svg></button>
       <button class="bt bt-icone" id="btAtualizacao" title="Atualização do conector"><svg><use href="#i-baixar"/></svg></button>
+      <button class="bt bt-icone" id="btDireitos" title="Direitos, termos e privacidade"><svg><use href="#i-escudo"/></svg></button>
       <button class="bt bt-icone" id="btSair" title="Sair do painel"><svg><use href="#i-sair"/></svg></button>
     </div>
   </header>
@@ -78,7 +83,7 @@
       </tr></thead>
       <tbody id="corpo"></tbody>
     </table>
-    <p class="vazio" id="vazio" hidden></p>
+    <div class="vazio" id="vazio" hidden></div>
   </section>
 </main>
 

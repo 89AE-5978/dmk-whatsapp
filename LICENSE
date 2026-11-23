@@ -1,0 +1,33 @@
+Licença de uso — DMK WhatsApp (conector)
+
+Copyright © 2026 Danilo Silva dos Santos — DMK Soluções. Todos os direitos reservados.
+
+Este software, o seu código-fonte, o seu painel, a sua documentação, a sua identidade visual (nome,
+logotipo e ícones) e os seus textos foram desenvolvidos por Danilo Silva dos Santos (DMK Soluções) e
+são propriedade dele.
+
+O repositório ser público serve para consulta, auditoria e para que os sistemas autorizados possam
+ser instalados e atualizados. **Isso não é permissão de uso.**
+
+1. É PRECISO AUTORIZAÇÃO POR ESCRITO do titular para instalar, executar, hospedar, copiar, distribuir,
+   modificar, integrar a outro sistema, revender, oferecer como serviço (SaaS) ou usar em ambiente de
+   produção, de teste ou de demonstração, de forma gratuita ou paga.
+2. A autorização é concedida por escrito, para uma pessoa ou empresa identificada, podendo ter prazo,
+   limite de sessões, de números de WhatsApp e de sistemas ligados. Ela não é transferível e pode ser
+   revogada em caso de descumprimento desta licença ou dos Termos de Uso.
+3. Sem autorização é vedado: remover ou alterar avisos de direitos autorais, nome ou marca; apresentar
+   o sistema como próprio; usar o nome, o logotipo ou a identidade visual da DMK Soluções; e usar o
+   código, total ou parcialmente, em outro produto.
+4. O software é fornecido "no estado em que se encontra", sem garantia de qualquer natureza. O titular
+   não responde por indisponibilidade do WhatsApp, bloqueio de número, perda de mensagens ou prejuízos
+   decorrentes do uso.
+5. Componentes de terceiros têm licença própria e são respeitados integralmente — em especial a
+   biblioteca **Baileys** (MIT, WhiskeySockets), usada para a comunicação com o WhatsApp Web. A lista
+   completa, com os avisos originais, está em `docs/CREDITOS.md`.
+6. Este software NÃO é um produto do WhatsApp nem da Meta, não tem relação, patrocínio ou aprovação
+   dessas empresas, e não usa a API oficial do WhatsApp (WhatsApp Business/Cloud API). "WhatsApp" é
+   marca da Meta Platforms, Inc., citada apenas para indicar compatibilidade.
+
+Condições completas de uso: `docs/TERMOS-DE-USO.md`.
+Tratamento de dados pessoais (LGPD): `docs/POLITICA-DE-PRIVACIDADE.md`.
+Autorizações e contato: Danilo Silva dos Santos — DMK Soluções — dmksolucoessmart@gmail.com

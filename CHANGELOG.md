@@ -1,5 +1,31 @@
 # Histórico
 
+## 1.3.17 — 22/11/2026
+
+**Cara nova: o conector de mensagens agora é verde**
+- Painel inteiro na identidade verde DMK (topo, botões, cartões, listas, modais, selos), no lugar do azul
+  que é dos outros sistemas. Verde é a cor do módulo de mensagens.
+- Logotipo e ícone (favicon) novos: **balão de conversa**, desenho próprio da DMK — não é marca de
+  terceiro nem cópia de ícone de ninguém.
+- Lista vazia agora mostra ilustração + título + explicação, nunca só um texto solto (padrão do sistema).
+- Topo no celular numa linha só: o nome não quebra mais, a etiqueta de versão sai e os botões de ícone
+  ficam alinhados.
+- Cartão de direitos no botão do escudo (topo) e link no rodapé da tela de entrada.
+
+**Direitos, termos, privacidade e créditos**
+- `LICENSE`: obra de Danilo Silva dos Santos (DMK Soluções), © 2026, todos os direitos reservados. O
+  repositório é público para consulta, auditoria e atualização — **usar depende de autorização por
+  escrito**.
+- `docs/TERMOS-DE-USO.md`: condições de uso, responsabilidades de quem usa, riscos de conexão não
+  oficial (número pode ser limitado ou bloqueado), garantias e limites, suspensão, foro.
+- `docs/POLITICA-DE-PRIVACIDADE.md`: LGPD — quem é controlador e operador, que dados passam pelo
+  conector, onde ficam, por quanto tempo (180 dias no histórico), segurança e direitos do titular.
+- `docs/CREDITOS.md`: a biblioteca **Baileys** (MIT — WhiskeySockets) é quem fala o protocolo do
+  WhatsApp Web, com o aviso de licença original; demais componentes; e o aviso de que o conector não é
+  produto do WhatsApp nem da Meta e não usa a API oficial.
+- `GET /health` passou a devolver `direitos` e `lib`: o aviso anda junto com o serviço.
+- `docs/API.md` ganhou a seção 0 (direitos, uso e créditos) e o README traz o aviso logo no começo.
+
 ## 1.3.16 — 22/11/2026
 
 **Documentação completa da API** — `docs/API.md` foi reescrita como referência profissional: gateways e
