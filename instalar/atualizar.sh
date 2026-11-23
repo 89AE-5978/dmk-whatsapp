@@ -23,7 +23,13 @@ RAMO="${DMK_WA_RAMO:-main}"
 ESPERA="${DMK_WA_ESPERA:-120}"
 cd "$RAIZ"
 [[ -d .git ]] || parar_com "$RAIZ não é um clone do repositório; o atualizador precisa do Git."
-exec 9> "$RAIZ/.atualizando.lock"
+# A trava fica em dados/ (fora do que o Git acompanha): dentro da pasta do código, um arquivo solto
+# atrapalha o próprio "git merge" da atualização ("untracked working tree files would be overwritten").
+# Sem redirecionar o stderr do script nesta linha: "exec 9> x 2>/dev/null" silenciaria todos os erros daqui em diante.
+mkdir -p "$RAIZ/dados" || true
+TRAVA="$RAIZ/dados/.atualizando.lock"
+[[ -d "$RAIZ/dados" && -w "$RAIZ/dados" ]] || TRAVA="/tmp/dmk-wa-atualizando.lock"
+exec 9> "$TRAVA"
 flock -n 9 || parar_com "Já existe uma atualização em andamento."  # os comandos que reiniciam o serviço fecham o descritor 9 para não herdar a trava
 # Botão Atualizar do painel: garante o gatilho (unidades systemd). Criado aqui para chegar junto com a
 # atualização nas instalações existentes; no --verificar nada é alterado.
