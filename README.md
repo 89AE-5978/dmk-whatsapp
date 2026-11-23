@@ -5,6 +5,14 @@ Cada sistema se liga à sessão dele com um código, busca os eventos, grava do 
 
 **Versão:** veja `VERSION` · **Histórico:** `CHANGELOG.md`
 
+> © 2026 **Danilo Silva dos Santos — DMK Soluções**. Todos os direitos reservados.
+> O repositório é público para consulta, auditoria e atualização dos sistemas autorizados: **usar
+> depende de autorização por escrito** ([LICENSE](LICENSE) ·
+> [Termos de Uso](docs/TERMOS-DE-USO.md) · [Política de Privacidade](docs/POLITICA-DE-PRIVACIDADE.md)).
+> A conexão com o WhatsApp é feita pela biblioteca de código aberto **Baileys** (MIT — WhiskeySockets);
+> este conector **não é produto do WhatsApp nem da Meta** e não usa a API oficial
+> ([Créditos](docs/CREDITOS.md)).
+
 ## Uma sessão, várias conexões (1.3.0)
 
 Cada sessão é um número. Cada sistema/chat ligado a ela é uma **conexão**, com ID próprio.
@@ -72,6 +80,9 @@ Fora da pasta: `/etc/systemd/system/dmk-wa-conector.service` e `/usr/local/bin/d
 - `docs/PAINEL.md` — painel web para gerenciar sem terminal (acesso por túnel SSH).
 - `docs/PROMPT-PARA-AGENTES.md` — texto pronto para entregar a quem (ou ao agente que) for ligar um sistema.
 - `docs/PROMPT-AJUSTE-1.3.md` — texto para ajustar um sistema já ligado à distribuição de leads da 1.3 (Assumir/Finalizar), com o bloco de cada sistema.
+- `LICENSE`, `docs/TERMOS-DE-USO.md`, `docs/POLITICA-DE-PRIVACIDADE.md`, `docs/CREDITOS.md` — direitos,
+  condições de uso, LGPD e as licenças de terceiros (Baileys e companhia). O painel mostra um resumo no
+  botão do escudo, no topo.
 
 ## Testes
 

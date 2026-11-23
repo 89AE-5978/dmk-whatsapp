@@ -29,7 +29,9 @@ sequer chegar à tela de login do painel; é a camada de proteção de verdade.
 
 ## O que a tela mostra e faz
 
-- **Topo:** nome do serviço, versão, uma bolinha que fica vermelha se o conector parar de responder.
+- **Topo:** logotipo (balão de conversa), nome do serviço, versão e uma bolinha que fica vermelha se o
+  conector parar de responder. À direita: atualizar a lista, atualização do conector, **escudo**
+  (direitos, termos e privacidade) e sair. No celular o topo fica compacto, numa linha só.
 - **Cartões (KPIs):** total de sessões, quantas conectadas, sistemas ligados, eventos na fila, sessões
   com erro — sempre numa linha só.
 - **Lista:** uma linha por sessão (estado, número, dono, nome, sistemas ligados, fila). Clicar abre a
@@ -49,6 +51,14 @@ quando algo muda — a pesquisa, a ordem e a página ficam como você deixou).
 
 Estado **Aberta em outro lugar**: a mesma credencial está ligada em outra máquina ou serviço (código 440).
 O conector para essa sessão para as duas não se derrubarem em loop. Desligue a outra cópia e use Reiniciar.
+
+## Direitos, termos e privacidade
+
+O botão do **escudo**, no topo (e o link no rodapé da tela de entrada), abre um cartão por cima da tela
+com o resumo: autoria, que o uso depende de autorização por escrito, o papel de cada um na LGPD, onde
+ficam as conversas, e o aviso de que a conexão usa a biblioteca **Baileys** (MIT) e de que o conector
+não é produto do WhatsApp nem da Meta. Os documentos completos estão no repositório: `LICENSE`,
+`docs/TERMOS-DE-USO.md`, `docs/POLITICA-DE-PRIVACIDADE.md` e `docs/CREDITOS.md`.
 
 ## O que o painel não faz
 

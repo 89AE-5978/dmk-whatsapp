@@ -8,8 +8,17 @@ que não existe, os limites, os códigos de erro, os logs e como a automação (
 Quem for ligar um sistema deve ler **esta página inteira** antes de escrever código — não adivinhe
 rotas nem formatos.
 
+> **Direitos e uso.** O DMK WhatsApp é obra de **Danilo Silva dos Santos — DMK Soluções** (© 2026,
+> todos os direitos reservados). O repositório é público para consulta, auditoria e atualização; **usar
+> depende de autorização por escrito do titular** (`LICENSE`, [TERMOS-DE-USO.md](TERMOS-DE-USO.md),
+> [POLITICA-DE-PRIVACIDADE.md](POLITICA-DE-PRIVACIDADE.md)).
+> A conversa com o WhatsApp é feita pela biblioteca de código aberto **Baileys** (MIT —
+> WhiskeySockets), executada no próprio servidor; este conector **não é produto do WhatsApp nem da
+> Meta** e não usa a API oficial ([CREDITOS.md](CREDITOS.md)).
+
 Índice:
 
+0. [Direitos, uso e créditos](#0-direitos-uso-e-créditos)
 1. [Como o conector é organizado](#1-como-o-conector-é-organizado)
 2. [Portas e gateways](#2-portas-e-gateways)
 3. [Começar em 5 passos](#3-começar-em-5-passos)
@@ -26,6 +35,25 @@ rotas nem formatos.
 14. [Como o conector evita travar](#14-como-o-conector-evita-travar)
 15. [O que a API **não** faz](#15-o-que-a-api-não-faz)
 16. [Novidades da 1.3.16](#16-novidades-da-1316)
+
+---
+
+## 0. Direitos, uso e créditos
+
+| | |
+|---|---|
+| Autoria e direitos | **Danilo Silva dos Santos — DMK Soluções**, © 2026. Todos os direitos reservados (`LICENSE`). |
+| Permissão de uso | **Somente com autorização por escrito** do titular — inclusive para instalar, testar, hospedar, integrar ou revender. Repositório público ≠ permissão de uso. |
+| Condições | [TERMOS-DE-USO.md](TERMOS-DE-USO.md) — responsabilidades de quem usa, riscos do WhatsApp, limites. |
+| Dados pessoais (LGPD) | [POLITICA-DE-PRIVACIDADE.md](POLITICA-DE-PRIVACIDADE.md) — o que é guardado, onde, por quanto tempo e os direitos do titular. |
+| Biblioteca do WhatsApp | **Baileys 7** (MIT — WhiskeySockets): é ela que fala o protocolo do WhatsApp Web. Avisos em [CREDITOS.md](CREDITOS.md). |
+| Relação com o WhatsApp/Meta | Nenhuma. Não é produto, não tem patrocínio nem aprovação, e não usa a API oficial. "WhatsApp" é marca da Meta Platforms, Inc. |
+
+Quem for integrar precisa saber de três consequências práticas de usar a biblioteca não oficial: o
+WhatsApp pode mudar sem avisar, **o número pode ser limitado ou bloqueado** (ainda mais com disparo em
+massa), e o que só existe na API oficial (Flows, catálogo, pedidos) não está disponível aqui.
+
+O próprio serviço carrega esse aviso: `GET /health` devolve os campos `direitos` e `lib`.
 
 ---
 
@@ -78,8 +106,8 @@ pelo túnel SSH**, nunca abertos na internet.
 Todas as respostas são JSON. Erro vem sempre como `{ "error": "mensagem em português" }` com o código
 HTTP correspondente — a mensagem pode ir direto para a tela do atendente.
 
-`GET /health` devolve: `ok`, `versao`, `node`, `simulado`, `sessoes`, `ativas`, `conectadas`. Nada
-sensível (serve para o monitoramento externo).
+`GET /health` devolve: `ok`, `versao`, `node`, `simulado`, `sessoes`, `ativas`, `conectadas`, `direitos`
+e `lib`. Nada sensível (serve para o monitoramento externo).
 
 ---
 
@@ -598,7 +626,13 @@ edição, apagar, "digitando…", "gravando…" e "visto".
 
 ---
 
-## 16. Novidades da 1.3.16
+## 16. Novidades da 1.3.17 e da 1.3.16
+
+**1.3.17** — identidade verde do conector (painel, ícone e logotipo de balão de conversa), documentos de
+direitos, termos de uso, política de privacidade (LGPD) e créditos, e os campos `direitos` e `lib` no
+`GET /health`.
+
+**1.3.16**
 
 - **Mensagem de voz no envio**: `media.voz: true` manda áudio como gravação (ptt). Sem a marca, áudio
   continua indo como arquivo.
@@ -610,6 +644,9 @@ edição, apagar, "digitando…", "gravando…" e "visto".
 - Esta documentação, reescrita como referência completa.
 
 ---
+
+Direitos e documentos legais: `LICENSE` · [TERMOS-DE-USO.md](TERMOS-DE-USO.md) ·
+[POLITICA-DE-PRIVACIDADE.md](POLITICA-DE-PRIVACIDADE.md) · [CREDITOS.md](CREDITOS.md).
 
 Outras páginas: [CHATBOT.md](CHATBOT.md) (fluxo e automação) ·
 [LIGAR-UM-SISTEMA.md](LIGAR-UM-SISTEMA.md) (passo a passo por sistema) ·

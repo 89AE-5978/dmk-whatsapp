@@ -1,12 +1,19 @@
 {
   "name": "DMK WhatsApp — conector",
   "short_name": "DMK WhatsApp",
-  "description": "Painel de administração do conector global de WhatsApp da DMK.",
+  "description": "Painel de administração do conector de mensagens (WhatsApp) da DMK Soluções.",
   "lang": "pt-BR",
   "start_url": "/painel/",
   "scope": "/painel/",
   "display": "standalone",
-  "theme_color": "#0b2447",
-  "background_color": "#0b2447",
-  "icons": [{ "src": "/painel/icone.svg", "sizes": "any", "type": "image/svg+xml", "purpose": "any" }]
+  "theme_color": "#0a3b23",
+  "background_color": "#0a3b23",
+  "icons": [
+    {
+      "src": "/painel/icone.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    }
+  ]
 }

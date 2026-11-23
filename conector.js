@@ -108,7 +108,11 @@ function criarServidor({ dataDir, chaveAdmin, fabricaMotor, simulado = false, lo
       const p = new URL(req.url, 'http://x').pathname;
       if (p === '/health' && req.method === 'GET') {
         const l = sessoes.listar();
-        return json({ ok: true, servico: 'dmk-whatsapp', versao: VERSAO, node: process.version, simulado, sessoes: l.length, conectadas: l.filter((s) => s.status === 'CONECTADO').length, ativas: l.filter((s) => s.ativa).length });
+        // "direitos" e "lib" andam junto com o serviço (1.3.17): quem consulta a API sabe de quem é o
+        // sistema, que o uso depende de autorização, e qual biblioteca fala com o WhatsApp.
+        return json({ ok: true, servico: 'dmk-whatsapp', versao: VERSAO, node: process.version, simulado, sessoes: l.length, conectadas: l.filter((s) => s.status === 'CONECTADO').length, ativas: l.filter((s) => s.ativa).length,
+          direitos: '© 2026 Danilo Silva dos Santos — DMK Soluções. Todos os direitos reservados. Uso somente com autorização por escrito (LICENSE, docs/TERMOS-DE-USO.md).',
+          lib: 'WhatsApp Web via Baileys (MIT — WhiskeySockets). Não é produto do WhatsApp nem da Meta.' });
       }
       if (p === '/' || p === '/painel' || p.startsWith('/painel/')) return painel.servir(req, p, res);
       if (p.startsWith(BASE + '/')) return await publico(req, p, json, res);

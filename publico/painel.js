@@ -67,6 +67,32 @@
   }
   $('#btCopiarComando').addEventListener('click', async () => { if (!await copiar($('#cmdChave').value, $('#btCopiarComando'))) $('#cmdChave').select(); });
 
+  // Lista vazia nunca é só texto solto: ilustração + título + explicação (padrão do sistema).
+  const vazioHtml = (titulo, texto) => `<svg aria-hidden="true"><use href="#i-vazio"/></svg><strong>${esc(titulo)}</strong><span>${esc(texto)}</span>`;
+  const vazioCelula = (colunas, titulo, texto) => `<tr><td colspan="${colunas}" class="vazio">${vazioHtml(titulo, texto)}</td></tr>`;
+
+  // ---------- direitos, termos e privacidade ----------
+  // Fica no painel (sem internet) e aponta para os documentos do repositório, que são a versão oficial.
+  function abrirDireitos() {
+    abrirModal({ titulo: 'Direitos, termos e privacidade', icone: 'escudo', estreito: true, corpo: `
+      <p class="nota"><b>DMK WhatsApp</b> — conector de mensagens desenvolvido por <b>Danilo Silva dos Santos (DMK Soluções)</b>.
+        © 2026. Todos os direitos reservados.</p>
+      <ul class="pontos">
+        <li><b>Uso</b><span>Só com autorização por escrito do titular, mesmo com o repositório público.</span></li>
+        <li><b>Repositório</b><span>Público para consulta, auditoria e atualização — isso não é permissão de uso.</span></li>
+        <li><b>Dados pessoais</b><span>LGPD: a empresa que usa é a controladora; a DMK Soluções atua como operadora.</span></li>
+        <li><b>Conversas</b><span>Histórico e anexos ficam no servidor da própria empresa, por 180 dias.</span></li>
+        <li><b>Contato</b><span>Danilo Silva dos Santos — DMK Soluções — dmksolucoessmart@gmail.com</span></li>
+      </ul>
+      <p class="nota">A conexão com o WhatsApp é feita pela biblioteca de código aberto <b>Baileys</b>
+        (MIT — WhiskeySockets), executada no próprio servidor. Este conector <b>não é produto do WhatsApp nem da Meta</b>,
+        não tem relação nem aprovação dessas empresas e não usa a API oficial. "WhatsApp" é marca da Meta Platforms, Inc.</p>
+      <p class="nota">Documentos completos no repositório <code>89AE-5978/dmk-whatsapp</code>: <code>LICENSE</code>,
+        <code>docs/TERMOS-DE-USO.md</code>, <code>docs/POLITICA-DE-PRIVACIDADE.md</code> e <code>docs/CREDITOS.md</code>.</p>` });
+  }
+  $('#btDireitos').addEventListener('click', abrirDireitos);
+  $('#btDireitosEntrada').addEventListener('click', abrirDireitos);
+
   // ---------- atualização do conector pelo painel ----------
   // GET /atualizacao compara as versões; POST grava o pedido que o systemd (root) atende com o
   // atualizar.sh de sempre (backup e volta automática). Aqui só acompanhamos pelo /health.
@@ -153,7 +179,9 @@
       <td>${esc(s.dono)}</td><td>${esc(s.nome)}</td><td class="num">${s.autorizacoes}</td><td class="num">${s.eventos_pendentes}</td>
     </tr>`).join('');
     $('#vazio').hidden = lista.length > 0;
-    $('#vazio').textContent = sessoes.length ? 'Nenhuma sessão com esse filtro.' : 'Nenhuma sessão. Clique em "Nova sessão".';
+    $('#vazio').innerHTML = sessoes.length
+      ? vazioHtml('Nenhuma sessão com esse filtro', 'Limpe a pesquisa ou os filtros para ver as outras sessões.')
+      : vazioHtml('Tudo certo por aqui', 'Nenhuma sessão criada ainda. Clique em "Nova sessão" para ligar o primeiro número.');
     $('#contaFiltros').hidden = !filtroEstados.size; $('#contaFiltros').textContent = filtroEstados.size;
     $$('#corpo tr').forEach((tr) => tr.addEventListener('click', () => abrirFicha(Number(tr.dataset.id))));
   }
@@ -378,7 +406,7 @@
         <td>${consulta(a)}</td>
         <td class="num" title="${a.pending ? 'Eventos esperando este sistema buscar' + (a.pending_oldest_at ? '; o mais antigo é de ' + new Date(a.pending_oldest_at).toLocaleString('pt-BR') : '') + '. Some sozinho depois de 7 dias.' : 'Nada esperando'}">${a.pending}</td>
         <td><div class="grupo-bt">${a.pending && !a.revoked_at ? `<button class="bt bt-mini bt-so-icone" data-limpar-fila="${a.id}" title="Esvaziar a fila deste sistema (${a.pending} evento(s))" aria-label="Esvaziar a fila de ${esc(a.label)}"><svg><use href="#i-fila"/></svg></button>` : ''}${a.revoked_at ? '' : `<button class="bt bt-mini bt-so-icone bt-perigo" data-revogar="${a.id}" title="Revogar o acesso deste sistema" aria-label="Revogar o acesso de ${esc(a.label)}"><svg><use href="#i-fechar"/></svg></button>`}<button class="bt bt-mini bt-so-icone" data-excluir-aut="${a.id}" title="Excluir do histórico desta sessão" aria-label="Excluir ${esc(a.label)} do histórico"><svg><use href="#i-lixo"/></svg></button></div></td>
-      </tr>`).join('')}</tbody></table>` : '<p class="vazio">Nenhum sistema ligado a esta sessão.</p>';
+      </tr>`).join('')}</tbody></table>` : `<div class="vazio">${vazioHtml('Nenhum sistema ligado', 'Use "Ligar um sistema" para gerar o código de 10 minutos do primeiro sistema.')}</div>`;
     $$('[data-tipo]', alvo).forEach((bt) => bt.addEventListener('click', async () => { if (bt.classList.contains('bt-principal')) return; await chamar('POST', `/sessoes/${id}/autorizacoes/${bt.dataset.aut}/tipo`, { tipo: bt.dataset.tipo }, bt); carregarAutorizacoes(m, id); }));
     $$('[data-limpar-fila]', alvo).forEach((bt) => bt.addEventListener('click', () => confirmarPerigo('Esvaziar a fila', 'Os eventos que esperam este sistema são descartados e ele não vai recebê-los. As mensagens continuam no histórico da sessão.', async (bt2) => { await chamar('POST', `/sessoes/${id}/autorizacoes/${bt.dataset.limparFila}/limpar-fila`, null, bt2); carregarAutorizacoes(m, id); })));
     $$('[data-revogar]', alvo).forEach((bt) => bt.addEventListener('click', () => confirmarPerigo('Revogar acesso', 'O sistema para de ler e enviar por esta sessão na próxima consulta.', async (bt2) => { await chamar('POST', `/sessoes/${id}/autorizacoes/${bt.dataset.revogar}/revogar`, null, bt2); carregarAutorizacoes(m, id); carregar(); })));
@@ -411,7 +439,7 @@
     </tr>`).join('');
     alvo.innerHTML = `<div class="quadro"><table class="dmk-lista">
         <thead><tr><th>Conexão</th><th>Situação</th><th>Contatos novos</th><th class="num">No fluxo</th><th></th></tr></thead>
-        <tbody>${linhas || '<tr><td colspan="5" class="vazio">Nenhum sistema ligado nesta sessão.</td></tr>'}</tbody></table></div>
+        <tbody>${linhas || vazioCelula(5, 'Nenhum sistema ligado', 'Os sistemas ligados a esta sessão aparecem aqui.')}</tbody></table></div>
       <p class="nota">O fluxograma é montado no sistema de cada empresa, com a chave que ela já usa. Aqui você liga, desliga e acompanha.</p>
       <div class="quadro quadro-espaco"><table class="dmk-lista">
         <thead><tr><th>Contato</th><th>Situação</th><th>Desde</th><th></th></tr></thead>
@@ -423,7 +451,7 @@
             ${e.phase === 'fluxo' ? `<button class="bt bt-mini" data-bot-sair="${esc(e.peer)}" title="Tirar do fluxo e deixar para um atendente">Tirar do fluxo</button>` : ''}
             <button class="bt bt-mini bt-perigo" data-bot-ignorar="${esc(e.peer)}" title="Este contato nunca mais passa pelo robô">Nunca atender</button>
           </div></td>
-        </tr>`; }).join('') : '<tr><td colspan="4" class="vazio">Ninguém sendo atendido pelo robô agora.</td></tr>'}</tbody></table></div>
+        </tr>`; }).join('') : vazioCelula(4, 'Tudo certo por aqui', 'Ninguém está no fluxo do robô agora.')}</tbody></table></div>
       ${estados.ignored.length ? `<div class="quadro quadro-espaco"><table class="dmk-lista">
         <thead><tr><th>Nunca atender pelo robô</th><th>Desde</th><th></th></tr></thead>
         <tbody>${estados.ignored.map((x) => `<tr><td>${esc(x.peer.split('@')[0])}</td>
@@ -468,7 +496,7 @@
         </div>
         <div class="quadro"><table class="dmk-lista"><thead><tr>
           <th data-ord="name">Contato</th><th data-ord="state">Situação</th><th data-ord="owner">Atendendo</th><th data-ord="last_at">Última</th><th></th>
-        </tr></thead><tbody data-at-corpo></tbody></table><p class="vazio" data-at-vazio hidden></p></div>
+        </tr></thead><tbody data-at-corpo></tbody></table><div class="vazio" data-at-vazio hidden></div></div>
         <div class="paginacao" data-at-pag></div>`;
       alvo._estado = { termo: '', ord: 'last_at', desc: true, pagina: 1, por: 10, dados: null, assinatura: '' };
       $('[data-at-busca]', alvo).addEventListener('input', (ev) => { alvo._estado.termo = ev.target.value; alvo._estado.pagina = 1; desenharAtendimentos(m, id); });
@@ -500,7 +528,9 @@
         ${e.dados.modo === 'leads' ? `<button class="bt bt-mini bt-icone-mini" data-transferir="${esc(c.peer)}" title="Transferir para outra conexão"><svg><use href="#i-sair"/></svg></button>` : ''}</div></td>
     </tr>`; }).join('');
     const vazio = $('[data-at-vazio]', alvo); vazio.hidden = lista.length > 0;
-    vazio.textContent = e.dados.conversas.length ? 'Nenhuma conversa com essa pesquisa.' : 'Nenhuma conversa ainda. Elas aparecem aqui quando o número recebe ou envia mensagens.';
+    vazio.innerHTML = e.dados.conversas.length
+      ? vazioHtml('Nenhuma conversa com essa pesquisa', 'Tente outro trecho do nome ou do número.')
+      : vazioHtml('Tudo certo por aqui', 'Nenhuma conversa ainda. Elas aparecem assim que o número recebe ou envia mensagens.');
     const nums = []; for (let p = Math.max(1, Math.min(e.pagina - 2, paginas - 4)); p <= Math.min(paginas, Math.max(1, Math.min(e.pagina - 2, paginas - 4)) + 4); p++) nums.push(p);
     $('[data-at-pag]', alvo).innerHTML = `<span class="total">${lista.length} conversa(s)</span><div class="grupo-bt">
       <button class="bt bt-mini" data-pag="${e.pagina - 1}" ${e.pagina <= 1 ? 'disabled' : ''} title="Anterior">‹</button>
