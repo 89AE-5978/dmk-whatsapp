@@ -1,6 +1,7 @@
 # DMK WhatsApp - o que nunca vai para o GitHub
 dados/
 backups/
+.atualizando.lock
 node/
 node_modules/
 logs/

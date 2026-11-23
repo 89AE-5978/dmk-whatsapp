@@ -1,5 +1,20 @@
 # Histórico
 
+## 1.3.19 — 23/11/2026
+
+**A atualização voltou a passar** — a 1.3.18 subiu com o arquivo de trava `.atualizando.lock` dentro do
+repositório por engano. Na VPS, o atualizador cria essa trava na mesma pasta antes de buscar o código,
+e o `git merge` abortava com *"untracked working tree files would be overwritten by merge"*, sem
+atualizar nada (a instalação ficava presa na versão anterior, intacta).
+
+- O arquivo saiu do repositório e entrou no `.gitignore`.
+- A trava passou a ficar em `dados/.atualizando.lock`, **fora do que o Git acompanha** (com `/tmp` como
+  reserva), para que nunca mais atrapalhe o merge da própria atualização.
+- Teste novo guarda as duas coisas: o arquivo não pode estar no repositório e o script não pode criar a
+  trava na raiz do código.
+
+Quem ficou preso na 1.3.17 só precisa rodar a atualização de novo; não é preciso apagar nada à mão.
+
 ## 1.3.18 — 22/11/2026
 
 **`dmk-wa atualizar`** — atualizar deixou de depender de decorar o caminho do script:
