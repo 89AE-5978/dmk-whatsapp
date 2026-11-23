@@ -80,6 +80,9 @@ Fora da pasta: `/etc/systemd/system/dmk-wa-conector.service` e `/usr/local/bin/d
 - `docs/PAINEL.md` — painel web para gerenciar sem terminal (acesso por túnel SSH).
 - `docs/PROMPT-PARA-AGENTES.md` — texto pronto para entregar a quem (ou ao agente que) for ligar um sistema.
 - `docs/PROMPT-AJUSTE-1.3.md` — texto para ajustar um sistema já ligado à distribuição de leads da 1.3 (Assumir/Finalizar), com o bloco de cada sistema.
+- `docs/PROMPT-PRISMA-ATENDIMENTO.md` — texto pronto para o agente do DMK Prisma corrigir o controle de
+  quem assumiu a conversa (etiqueta `routing`, `assigned`/`released`, `claim`/`release`), com os arquivos
+  e as linhas do defeito e o roteiro de validação.
 - `LICENSE`, `docs/TERMOS-DE-USO.md`, `docs/POLITICA-DE-PRIVACIDADE.md`, `docs/CREDITOS.md` — direitos,
   condições de uso, LGPD e as licenças de terceiros (Baileys e companhia). O painel mostra um resumo no
   botão do escudo, no topo.
