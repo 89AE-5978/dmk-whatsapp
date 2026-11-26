@@ -1,5 +1,15 @@
 # Histórico
 
+## 1.3.20 — 26/11/2026
+
+**O aviso do robô volta a chegar aos sistemas** — o evento `bot` (robô transferiu, parou ou encerrou)
+só era entregue a quem declarava `X-DMK-Features: routing`, porque o recurso informado pelo chatbot era
+ignorado. O DMK Prisma declara `bot` e não recebia nada.
+
+- `notify` passou a respeitar o recurso pedido (`routing` continua o padrão de assumida/liberada).
+- Nenhuma rota, formato de evento ou credencial mudou; isolamento por conexão e sessão preservado.
+- Teste novo: conexão com `actions,bot` recebe o evento; conexão só com `routing` não recebe.
+
 ## 1.3.19 — 23/11/2026
 
 **A atualização voltou a passar** — a 1.3.18 subiu com o arquivo de trava `.atualizando.lock` dentro do

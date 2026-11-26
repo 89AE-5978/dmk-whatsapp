@@ -54,8 +54,8 @@ async function subir() {
   const app = criarServidor({ dataDir, chaveAdmin: CHAVE, fabricaMotor: motorSimulado, simulado: true, log: { error() {}, log() {} } });
   await new Promise((ok) => app.servidor.listen(0, '127.0.0.1', ok));
   const url = 'http://127.0.0.1:' + app.servidor.address().port;
-  const pedir = async (metodo, caminho, corpo, token) => {
-    const r = await fetch(url + caminho, { method: metodo, headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(corpo ? { 'Content-Type': 'application/json' } : {}), 'X-DMK-Features': 'actions,routing,bot' }, body: corpo ? JSON.stringify(corpo) : undefined });
+  const pedir = async (metodo, caminho, corpo, token, recursos = 'actions,routing,bot') => {
+    const r = await fetch(url + caminho, { method: metodo, headers: { ...(token ? { Authorization: 'Bearer ' + token } : {}), ...(corpo ? { 'Content-Type': 'application/json' } : {}), 'X-DMK-Features': recursos }, body: corpo ? JSON.stringify(corpo) : undefined });
     return { status: r.status, corpo: (r.headers.get('content-type') || '').includes('json') ? await r.json() : null };
   };
   const admin = (m, c, b) => pedir(m, '/admin/v1' + c, b, CHAVE);
@@ -67,7 +67,7 @@ async function subir() {
     const t = (await pedir('POST', BASE + '/exchange', { code: aut.code, protocol: 2 })).corpo.token;
     return { id: aut.id, token: t };
   };
-  return { app, id: criada.id, admin, pub: (m, c, b, t) => pedir(m, BASE + c, b, t), conectar,
+  return { app, id: criada.id, admin, pub: (m, c, b, t, r) => pedir(m, BASE + c, b, t, r), conectar,
     enviados: () => app.sessoes.motor.enviados, acoes: () => app.sessoes.motor.acoes,
     // O chatbot responde depois da mensagem seguir para os sistemas (e com as pausas de "digitando"),
     // então o teste espera um instante antes de conferir o que saiu.
@@ -266,4 +266,21 @@ test('contato na lista de nunca atender: o robô ignora, e dá para voltar atrá
   await s.cliente('oi');
   assert.equal(textos(s).length, 2, 'voltou a ser atendido');
   assert.equal((await s.admin('GET', `/sessoes/${s.id}/chatbot/estados`)).corpo.ignored.length, 0);
+});
+
+// 1.3.20: o evento "bot" vai para quem declara "bot", mesmo sem "routing"; quem só declara "routing" não recebe.
+test('evento do robô chega a quem declara bot, sem depender de routing', async (t) => {
+  const s = await subir(); t.after(() => s.app.encerrar());
+  const loja = await s.conectar('Loja'), gestao = await s.conectar('Gestao');
+  const tipos = async (c, recursos) => {
+    const r = (await s.pub('GET', '/events', null, c.token, recursos)).corpo;
+    if (r.events.length) await s.pub('POST', '/ack', { ids: r.events.map((e) => e.id) }, c.token, recursos);
+    return r.events.filter((e) => e.type === 'bot').map((e) => e.data.action);
+  };
+  // Cada sistema declara seus recursos na busca de eventos, como o Prisma faz.
+  await tipos(loja, 'actions,bot'); await tipos(gestao, 'actions,routing');
+  await s.pub('PUT', '/bot', { fluxo: FLUXO, ativo: true, atende_novos: true }, loja.token, 'actions,bot');
+  await s.cliente('oi'); await s.cliente('1'); await s.cliente('minha internet caiu');
+  assert.deepEqual(await tipos(loja, 'actions,bot'), ['transferir'], 'quem declarou bot recebe a transferência');
+  assert.deepEqual(await tipos(gestao, 'actions,routing'), [], 'quem não declarou bot não recebe');
 });
