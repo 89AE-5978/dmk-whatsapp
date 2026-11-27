@@ -96,6 +96,8 @@ test('protocolo: código de uso único, fila só esvazia com confirmação, envi
   assert.equal(s.app.sessoes.motor.enviados.at(-1).text, 'Escolha\n1. Sim\n2. Não', 'o texto numerado segue junto, como reserva');
   assert.equal((await s.pub('POST', '/send', { to: '5581999990001', text: 'x', request_id: rid(), interactive: { body: 'x', items: [] } }, a.token)).status, 400);
   assert.equal(s.app.sessoes.motor.enviados.length, antes + 1);
+  { const r = await s.pub('POST', '/send', { to: '5581999990001', text: 'Escolha\n1. A', request_id: rid(), interactive: { style: 'list', body: 'Escolha', items: [{ id: 'o1', label: 'A', description: 'desc' }] } }, a.token); assert.equal(r.status, 200); assert.equal(r.corpo.interactive, true, '1.3.21: diz que saiu interativa'); assert.deepEqual(s.app.sessoes.motor.enviados.at(-1).opcoes.interactive.items, [{ id: 'o1', label: 'A', description: 'desc' }]); }
+  { const r = await s.pub('POST', '/send', { to: '5581999990001', text: 'só texto', request_id: rid() }, a.token); assert.equal(r.status, 200); assert.equal(r.corpo.interactive, undefined, 'sem lista: resposta igual à de antes'); }
   assert.equal((await s.pub('POST', '/react', { to: '5581999990001', messageId: 'MSG00002', emoji: '👍' }, a.token)).status, 200);
   assert.equal((await s.pub('POST', '/read', { to: '5581999990001', messageIds: ['MSG00002'] }, a.token)).status, 200);
   assert.deepEqual(s.app.sessoes.motor.acoes.map((x) => x.tipo), ['react', 'read']);

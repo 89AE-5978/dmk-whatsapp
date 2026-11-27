@@ -1,5 +1,20 @@
 # Histórico
 
+## 1.3.21 — 26/11/2026
+
+**Chat do DMK Prisma: lista e botões pelo atendimento humano, Pix e encaminhadas** — extensão mínima,
+compatível com quem usa a 1.3.20.
+
+- `POST /send` com `interactive`: a resposta passa a trazer `interactive: true` (saiu como lista/botões) ou
+  `false` (a biblioteca não tinha suporte e foi o texto de reserva). Sem `interactive`, a resposta não muda.
+- Opção da lista aceita `description` (até 72 caracteres), mostrada na linha da lista no WhatsApp. Botão não tem
+  descrição: com descrição, o pedido vira lista. Sem descrição, tudo igual à 1.3.20.
+- Botão de pagamento (`payment_info` / `review_and_pay`, o Pix de bancos e lojas) vira "Copiar chave Pix" com o
+  valor; nome técnico de botão sem rótulo vira um nome legível ("Pagamento", "Ação do WhatsApp"), nunca o
+  identificador cru.
+- Mensagem encaminhada chega com `forwarded: true` no evento `message`.
+- Nenhuma rota, credencial ou formato de evento foi removido ou renomeado.
+
 ## 1.3.20 — 26/11/2026
 
 **O aviso do robô volta a chegar aos sistemas** — o evento `bot` (robô transferiu, parou ou encerrou)
