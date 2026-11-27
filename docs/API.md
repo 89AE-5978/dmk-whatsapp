@@ -249,6 +249,10 @@ Corpo comum:
 Resposta: `{ "ok": true, "externalId": "ID_DA_MENSAGEM_NO_WHATSAPP" }` — guarde o `externalId` para
 casar com os eventos `delivery`, `reaction`, `revoke` e `edit`.
 
+Com `interactive` (1.3.21+), a resposta traz também `"interactive": true` quando saiu como lista/botões do
+WhatsApp, ou `false` quando foi o `text` de reserva. Cada item da lista aceita `"description"` (até 72
+caracteres), mostrada na linha da lista; botões não têm descrição (com descrição, o pedido vira lista).
+
 Regras que valem para **todo** envio:
 
 - `to`: telefone completo com DDI e DDD, só dígitos (`5587999990000`). Também aceita

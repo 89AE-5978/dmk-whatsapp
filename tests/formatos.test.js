@@ -7,7 +7,7 @@ test('mensagens de empresa, contato e localização: texto, estrutura e envio na
 assert.equal(F.texto({interactiveMessage:{header:{title:'Neoenergia'},body:{text:'Sua fatura de novembro está disponível.'},footer:{text:'Atendimento 116'},nativeFlowMessage:{buttons:[{name:'cta_url',buttonParamsJson:JSON.stringify({display_text:'Ver fatura',url:'https://exemplo.test/f'})},{name:'quick_reply',buttonParamsJson:JSON.stringify({display_text:'Falar com atendente',id:'a1'})},{name:'cta_copy',buttonParamsJson:JSON.stringify({display_text:'Copiar código Pix',copy_code:'000201'})}]}}}),
  'Neoenergia\nSua fatura de novembro está disponível.\nAtendimento 116\nOpções: Ver fatura (https://exemplo.test/f) · Falar com atendente · Copiar código Pix (000201)');
 // cabeçalho com documento e sem título; JSON de botão quebrado não derruba
-assert.equal(F.texto({interactiveMessage:{header:{hasMediaAttachment:true,documentMessage:{fileName:'fatura.pdf'}},body:{text:'Segue sua conta.'},nativeFlowMessage:{buttons:[{name:'cta_url',buttonParamsJson:'{quebrado'}]}}}),'Segue sua conta.\n[Enviado com documento: veja no WhatsApp do celular]\nOpções: cta_url');
+assert.equal(F.texto({interactiveMessage:{header:{hasMediaAttachment:true,documentMessage:{fileName:'fatura.pdf'}},body:{text:'Segue sua conta.'},nativeFlowMessage:{buttons:[{name:'cta_url',buttonParamsJson:'{quebrado'}]}}}),'Segue sua conta.\n[Enviado com documento: veja no WhatsApp do celular]\nOpções: Abrir link') // 1.3.21: nome técnico vira rótulo legível;
 // lista dentro de botão nativo (single_select)
 assert.match(F.texto({interactiveMessage:{body:{text:'Escolha'},nativeFlowMessage:{buttons:[{name:'single_select',buttonParamsJson:JSON.stringify({title:'Serviços',sections:[{rows:[{title:'2ª via'},{title:'Falta de energia'}]}]})}]}}}),/Opções: Serviços: 2ª via · Falta de energia$/);
 // carrossel sem corpo usa os títulos dos cartões
@@ -77,4 +77,16 @@ test('voto em enquete vira texto com as opções escolhidas', () => {
   assert.equal(F.textoVoto(enquete, [h('Tarde')], crypto), 'Enquete "Qual horário?": Tarde');
   assert.equal(F.textoVoto(enquete, [h('Manhã'), h('Tarde')], crypto), 'Enquete "Qual horário?": Manhã, Tarde');
   assert.equal(F.textoVoto(enquete, [], crypto), 'Enquete "Qual horário?": retirou o voto');
+});
+test('1.3.21: botão de pagamento (payment_info) e nomes técnicos não viram texto; descrição na lista',()=>{
+ const pay={interactiveMessage:{body:{text:'Pague sua fatura'},nativeFlowMessage:{buttons:[{name:'payment_info',buttonParamsJson:JSON.stringify({currency:'BRL',total_amount:{value:12990,offset:100},payment_settings:[{type:'pix_static_code',pix_static_code:{merchant_name:'Loja Teste',key:'chave-pix-teste',key_type:'EVP'}}]})},{name:'payment_info',buttonParamsJson:'{}'},{name:'algo_novo',buttonParamsJson:'{}'}]}}};
+ assert.deepEqual(F.estrutura(pay).opcoes,[{rotulo:'Copiar chave Pix · Loja Teste',tipo:'copiar',valor:'chave-pix-teste',descricao:'Valor: R$ 129,90'},{rotulo:'Pagamento',tipo:'resposta'},{rotulo:'Ação do WhatsApp',tipo:'resposta'}]);
+ assert.doesNotMatch(F.texto(pay),/payment_info|algo_novo/);
+ assert.equal(F.limpar({tipo:'interativa',corpo:'x',opcoes:[{rotulo:'payment_info'}]}).opcoes[0].rotulo,'Pagamento','estrutura vinda de conector antigo também');
+ const l=F.limparEnvio({style:'list',body:'Escolha',items:[{id:'o1',label:'Plano A',description:'Até 2 usuários'},{id:'o2',label:'Plano B'}]});
+ assert.deepEqual(l.items,[{id:'o1',label:'Plano A',description:'Até 2 usuários'},{id:'o2',label:'Plano B'}]);
+ const rows=JSON.parse(F.conteudoEnvio(l).viewOnceMessage.message.interactiveMessage.nativeFlowMessage.buttons[0].buttonParamsJson).sections[0].rows;
+ assert.deepEqual(rows,[{id:'o1',title:'Plano A',description:'Até 2 usuários'},{id:'o2',title:'Plano B',description:''}]);
+ assert.equal(F.limparEnvio({style:'buttons',body:'x',items:[{id:'o1',label:'Sim',description:'d'}]}).style,'list','botão não tem descrição: vira lista');
+ assert.deepEqual(F.limparEnvio({style:'buttons',body:'x',items:[{id:'o1',label:'Sim'}]}).items,[{id:'o1',label:'Sim'}],'sem descrição: igual ao 1.3.20');
 });
